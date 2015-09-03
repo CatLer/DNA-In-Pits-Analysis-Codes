@@ -32,6 +32,8 @@ classdef PitsChannel<handle
         Mean_Molecular_Brightness=[];
         Diffusion_Curve=[];
         Diffusion_Coefficient=[];
+        Tracking_Speed=[];
+        Tracking_Diffusion_Coefficient=[];
         Offset=[];
         Warnings={};
     end
@@ -154,7 +156,19 @@ classdef PitsChannel<handle
         %========================= TRACKING ANALYSIS ======================
         function obj=TrackingAnalysis(obj)
             % can be modified
-            
+           try        
+               Videos=obj.Intensity_Maps(2:end-1,2:end-1);
+            try       
+            Videos=Videos(logical(obj.Mean_Number_Of_Fluophores));
+            catch
+                warning('Couldn''t identify non-empty pits.');
+            end
+            Output=CalculateDiffusionCoefficients(Videos);
+            obj.Tracking_Diffusion_Coefficient=Output(1,:);
+            obj.Tracking_Speed=Output(2,:);
+           catch
+               warning('Couldn''t track molecules in the pits.')
+           end
         end
         %==================================================================
     end

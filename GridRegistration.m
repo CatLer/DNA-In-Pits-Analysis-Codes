@@ -1,6 +1,8 @@
 function [] = GridRegistration(pitsgrid_empty,pitsgrid_non_empty)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
+pitsgrid_empty=mat2gray(sum(mat2gray(pitsgrid_empty),3));
+pitsgrid_non_empty=mat2gray(sum(mat2gray(pitsgrid_non_empty),3));
 %=========================== Enhance image ================================
 % pitsgrid_empty_R=SelectSample(' the red channel.',pitsgrid_empty);
 % pitsgrid_empty_G=SelectSample(' the green channel.',pitsgrid_empty);
