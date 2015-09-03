@@ -65,7 +65,7 @@ try
         Vertical_spacing_G=EstimateSpacing(Template_2pits_Vet_G,Template_empty_G,Radius_empty_G);
     end
 catch ME
-    error(ME.identifier);
+    errordlg('Grid Registration Failed');
     status = false;
     return;
 end    

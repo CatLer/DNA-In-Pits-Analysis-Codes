@@ -1,8 +1,7 @@
 function [A] = TifSample(input_args)
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
-splitPath = strsplit(input_args,'\');
-wb = waitbar(0,sprintf('Loading: %s, Pleast Wait...',strrep(splitPath{length(splitPath)},'_','\_')));
+wb = waitbar(0,'Loading Movie, Please Wait...');
 warning('off','all')
 info = imfinfo(input_args);
 mIm = info(1).Width;

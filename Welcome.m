@@ -42,7 +42,7 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
-end
+
 
 % --- Executes just before Welcome is made visible.
 function Welcome_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -55,7 +55,7 @@ function Welcome_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for Welcome
 handles.output = hObject;
 %Stores folder name which user selects, current directory as default
-folderPath = pwd;
+[status,folderPath] = system('cd');
 set(handles.FolderName,'String',folderPath);        %update FolderName Static text box
 handles.folder = folderPath;
 
@@ -64,7 +64,7 @@ guidata(hObject, handles);
 
 % UIWAIT makes Welcome wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
-end
+
 
 % --- Outputs from this function are returned to the command line.
 function varargout = Welcome_OutputFcn(hObject, eventdata, handles) 
@@ -75,7 +75,7 @@ function varargout = Welcome_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-end
+
 
 function edit1_Callback(hObject, eventdata, handles)
 % hObject    handle to edit1 (see GCBO)
@@ -85,7 +85,6 @@ function edit1_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of edit1 as text
 %        str2double(get(hObject,'String')) returns contents of edit1 as a double
 % --- Executes during object creation, after setting all properties.
-end
 function edit1_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to edit1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -96,7 +95,7 @@ function edit1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-end
+
 % --- Executes on button press in NewGridReg.
 function NewGridReg_Callback(hObject, eventdata, handles)
 % hObject    handle to NewGridReg (see GCBO)
@@ -136,12 +135,7 @@ end
 gridProceedAns = questdlg(sprintf('Proceed with Grid Registration in \n%s?',handles.folder),'Confirm','Yes','No','Yes');
 switch(gridProceedAns)
     case'Yes'
-        GridReg();
-    case'No'    
-        return;
-end
-function status = GridReg()
-close all;
+        close all;
         status = GridRegistration(TifSample(sEmptyPath),TifSample(sNonEmptyPath),handles.folder);
         if status
             analysisProceedAns = questdlg(sprintf('Grid Registration Sucessful \n Proceed with Analysis?'),'Confirm','Yes','No','Yes');
@@ -151,17 +145,11 @@ close all;
                 case'No'
                     return;
             end
-        else
-            retry = questdlg(sprintf('Grid Registration Failed \n Retry?'),'Confirm','Yes','No','Yes');
-            switch(retry)
-                case'Yes'
-                    GridReg();
-                otherwise
-                    return;
-            end
-        end
-end
-end
+        end    
+    case'No'
+        return;
+end        
+
 % --- Executes on button press in ExistingGrid.
 function ExistingGrid_Callback(hObject, eventdata, handles)
 % hObject    handle to ExistingGrid (see GCBO)
@@ -178,8 +166,7 @@ if  isempty(searchResult)
             if ~gridFileName
                 return;
             end  
-            sourceFile = strcat(gridPathName,gridFileName);
-            disp(handles.folder);
+            sourceFile = strcat(gridPathName,gridFileName);    
             copyfile(sourceFile,handles.folder);            %copy user selected file to selected folder
         otherwise
             return;
@@ -192,8 +179,7 @@ else
             if ~gridFileName
                 return;
             end    
-            sourceFile = strcat(gridPathName,gridFileName);
-            disp(handles.folder);
+            sourceFile = strcat(gridPathName,gridFileName);   
             copyfile(sourceFile,handles.folder);            %copy user selected file to selected folder
         case 'Use This File'     
             %do nothing, go to analyze the samples
@@ -203,14 +189,14 @@ else
 end
 %Analyze samples with select GridRegistration
 DNA_In_Pits_Analysis(handles.folder);
-end
+
 
 % --- Executes on button press in ExistingSample.
 function ExistingSample_Callback(hObject, eventdata, handles)
 % hObject    handle to ExistingSample (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-end
+
 
 % --- Executes on button press in SelectFolder.
 function SelectFolder_Callback(hObject, eventdata, handles)
@@ -227,4 +213,3 @@ if folderPath ~= 0
 end
 guidata(hObject,handles);
 set(gcf,'Pointer','arrow');
-end

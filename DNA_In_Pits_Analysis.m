@@ -22,7 +22,7 @@ function []=DNA_In_Pits_Analysis(foldername)
 %===================== COLLECT SAMPLES TO ANALYZE =========================
 
 %--------------------------- Detect samples -------------------------------
-currentFolder = pwd;
+initialFolder = cd();
 cd(foldername);
 names=dir('*tif'); dates={names.datenum}; names={names.name};
 %--------------------------------------------------------------------------
@@ -265,7 +265,7 @@ for i=1:numel(names_G)
     my_name=strcat('Set_',mydate,OBJ_G{i},LENS_G{i},TRY_G{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
     display(my_name)
-    A=PitsSample(names_G{i});
+    A=PitsSample(names_G{i},GridFilePath);
     A.Date=datestr(dates_G{i});
     A.OBJ_T_In_Green_Laser=ObjTemp_G(i);
     A.LENS_T_In_Green_Laser=LensTemp_G(i);
@@ -305,7 +305,7 @@ end
 name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
 expression=sprintf('save(''Samples analyzed on %s'')',name);
 evalin('base',expression);
-cd(currentFolder);
+cd(initialFolder);
 %--------------------------------------------------------------------------
 %==========================================================================
 end
