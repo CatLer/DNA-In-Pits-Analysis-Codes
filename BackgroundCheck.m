@@ -1,5 +1,5 @@
 function []=BackgroundCheck(Intensity_R,Intensity_G,intensity_R,intensity_G,Background_R,Background_G,name)
-parent='C:\Users\Leslie Lab\Desktop\Active\Shane';
+parent='C:\Users\Leslie Lab\Desktop\Active\Shane'; % test
 newdir=name; mkdir(parent,newdir); path=strcat(parent,'\',newdir); cd(path);
 %cd('C:\Users\Leslie Lab\Desktop\Active\Shane\NonEmpty');
 for i=1:size(Intensity_R,1)
