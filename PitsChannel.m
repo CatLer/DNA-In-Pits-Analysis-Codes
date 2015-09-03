@@ -20,6 +20,7 @@ classdef PitsChannel<handle
         Intensity_Maps=[];
         Time_Average_Intensity=[];
         Average_Intensity=[];
+        Binding=[];
         Fluophore_Activity=[];
         Number_of_frames_packed=[];
         Number_Of_Fluophores_packed=[];
@@ -45,7 +46,7 @@ classdef PitsChannel<handle
         %======================= CONSTRUCTOR ==============================
         function  obj=PitsChannel(varargin)
             if nargin>0
-                narginchk(3,3); % checks # of input args
+                narginchk(4,4); % checks # of input args
                 
                 %------------------- Initialization -----------------------
                 % RI: Relative intensity
@@ -54,10 +55,11 @@ classdef PitsChannel<handle
                 RI=varargin{1};
                 AI=varargin{2};
                 BI=varargin{3};
+                SIG=varargin{4};
                 %----------------------------------------------------------
                 
                 %------------------- Intensity data -----------------------
-                obj.IntensityData(RI,AI,BI);
+                obj.IntensityData(RI,AI,BI,SIG);
                 %----------------------------------------------------------
                 
                 %-------------------- Fluophore data ----------------------
@@ -78,13 +80,14 @@ classdef PitsChannel<handle
         %==================================================================
         
         %===================== INTENSITIES STORAGE ========================
-        function obj=IntensityData(obj,RI,AI,BI)
+        function obj=IntensityData(obj,RI,AI,BI,SIG)
             % shouldn't be modified
             obj.Relative_Intensity=RI;
             obj.Absolute_Intensity=AI;
             obj.Background_Intensity=BI;
             obj.Average_Intensity=mean(RI(:));
             obj.Time_Average_Intensity=mean(RI,3);
+            obj.Binding=SIG;
             % add Photobleaching_cut function
         end
         %==================================================================

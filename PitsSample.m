@@ -136,11 +136,11 @@ classdef PitsSample<handle
             obj.Time_Average_Absolute_Intensity_In_Green_Laser=mean(Input,3);
             obj.Time_Average_Background_Intensity_In_Green_Laser=mean(Background,3);
             % intensities collection
-            [RIR,AIR,BIR]=...
+            [RIR,AIR,BIR,SIGR]=...
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Red_Channel);
-            [RIG,AIG,BIG]=...
+            [RIG,AIG,BIG,SIGG]=...
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Green_Channel);
@@ -148,9 +148,10 @@ classdef PitsSample<handle
             RIR=RIR(2:end-1,2:end-1,:); RIG=RIG(2:end-1,2:end-1,:);
             AIR=AIR(2:end-1,2:end-1,:); AIG=AIG(2:end-1,2:end-1,:);
             BIR=BIR(2:end-1,2:end-1,:); BIG=BIG(2:end-1,2:end-1,:);
+            SIGR=SIGR(2:end-1,2:end-1,:); SIGG=SIGG(2:end-1,2:end-1,:);
             % store data in channels
-            obj.Red_Channel_In_Green_Laser=PitsChannel(RIR,AIR,BIR);
-            obj.Green_Channel_In_Green_Laser=PitsChannel(RIG,AIG,BIG);
+            obj.Red_Channel_In_Green_Laser=PitsChannel(RIR,AIR,BIR,SIGR);
+            obj.Green_Channel_In_Green_Laser=PitsChannel(RIG,AIG,BIG,SIGG);
         end
         %==================================================================
         
