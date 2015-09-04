@@ -15,6 +15,7 @@ classdef PitsChannel<handle
     %%                              PROPERTIES
     properties
         Relative_Intensity=[];
+        Molecular_Brightness_In_Time=[];
         Absolute_Intensity=[];
         Background_Intensity=[];
         Intensity_Maps=[];
@@ -55,11 +56,11 @@ classdef PitsChannel<handle
                 RI=varargin{1};
                 AI=varargin{2};
                 BI=varargin{3};
-                SIG=varargin{4};
+                MB=varargin{4};
                 %----------------------------------------------------------
                 
                 %------------------- Intensity data -----------------------
-                obj.IntensityData(RI,AI,BI,SIG);
+                obj.IntensityData(RI,AI,BI,MB);
                 %----------------------------------------------------------
                 
                 %-------------------- Fluophore data ----------------------
@@ -80,14 +81,14 @@ classdef PitsChannel<handle
         %==================================================================
         
         %===================== INTENSITIES STORAGE ========================
-        function obj=IntensityData(obj,RI,AI,BI,SIG)
+        function obj=IntensityData(obj,RI,AI,BI,MB)
             % shouldn't be modified
             obj.Relative_Intensity=RI;
             obj.Absolute_Intensity=AI;
             obj.Background_Intensity=BI;
             obj.Average_Intensity=mean(RI(:));
             obj.Time_Average_Intensity=mean(RI,3);
-            obj.Binding=SIG;
+            obj.Molecular_Brightness_In_Time=MB;
             % add Photobleaching_cut function
         end
         %==================================================================
