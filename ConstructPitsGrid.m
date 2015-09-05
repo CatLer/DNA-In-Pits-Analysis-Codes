@@ -41,10 +41,20 @@ Green_Channel=UniformBackgroundIllumination(Green_Channel,0);
 %==========================================================================
 %------------------------ Generate grids ----------------------------------
 % generate pits' positions in red channel
-[Pos_R,N_rows,N_cols]=ConstructMyGrid(Template_empty_R,Template_nonempty_R,Red_Channel);
+[Pos_R,N_rows_R,N_cols_R]=ConstructMyGrid(Template_empty_R,Template_nonempty_R,Red_Channel);
 % generate pits' positions in green channel
-[Pos_G,N_rows,N_cols]=ConstructMyGrid(Template_empty_G,Template_nonempty_G,Green_Channel);
+[Pos_G,N_rows_G,N_cols_G]=ConstructMyGrid(Template_empty_G,Template_nonempty_G,Green_Channel);
 Pos_G(:,1)=Pos_G(:,1)+Offset_G;
+
+if N_rows_R==N_rows_G && N_cols_R==N_cols_G
+    N_rows=N_cols_R; N_cols=N_cols_G;
+else
+    error('Not same grid dimensions for both channels.');
+%     [Nr,nr]=max(N_rows_R,N_rows_G);
+%     [Nc,nc]=max(N_cols_R,N_cols_G);
+    % do something !!! 
+end
+
 % visualization
 % figure; imshow(pitsgrid);
 % viscircles(Pos_G,Radius*ones(size(Pos_G,1),1),'Edgecolor','g');
@@ -142,6 +152,8 @@ Pos_G(:,1)=Pos_G(:,1)+Offset_G;
         offset=trimmean(Differences,5,1);
         Pairs(:,1)=Pairs(:,1)-offset(1);
         Pairs(:,2)=Pairs(:,2)-offset(2);       
+        [N_rows,N_cols]=...
+            GuessNumRowsCols(size(Pairs,1), N_rows, N_cols);
 %       figure; imshow(Channel);  viscircles(Pairs,Radius*ones(size(Pairs,1),1),'EdgeColor','b');
     end
 %--------------------------------------------------------------------------

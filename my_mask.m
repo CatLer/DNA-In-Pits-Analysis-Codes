@@ -44,6 +44,7 @@ Variance=cell2mat(cellfun(@(x) medfilt1(x,w),...
     size(Variance,3)),'UniformOutput',false));
 Variance = Variance(:,:,1+w:size(Variance,3)-w);
 Molecular_Brightness=Variance./intensity;
+    % remove the offset using Intensity1Molecule
 
 %--------------------------------------------------------------------------
 %--------------------- background intensity -------------------------------
@@ -64,6 +65,7 @@ Intensity=intensity-Background;
 Intensity=Intensity./fraction;
 intensity=intensity./fraction;
 Background=Background./fraction;
+Molecular_Brightness=Molecular_Brightness./fraction;
 %--------------------------------------------------------------------------
 %-------------------------- Labelling check -------------------------------
 % Returns x,y coordinates of the COM of objects (not exact pits positions)
