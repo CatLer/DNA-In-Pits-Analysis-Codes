@@ -63,6 +63,10 @@ classdef PitsChannel<handle
                 obj.IntensityData(RI,AI,BI,MB);
                 %----------------------------------------------------------
                 
+                %---------------- Molecular brightness --------------------
+                obj.SpatialMolecularBrightness(MB);
+                %----------------------------------------------------------
+                
                 %-------------------- Fluophore data ----------------------
                 obj.CountTheNumberOfFluophores();
                 obj.CalculateFluophoreActivity();
@@ -90,6 +94,16 @@ classdef PitsChannel<handle
             obj.Time_Average_Intensity=mean(RI,3);
             obj.Molecular_Brightness_In_Time=MB;
             % add Photobleaching_cut function
+        end
+        %==================================================================
+        
+        %===================== MOLECULAR BRIGHTNESS =======================
+        function obj=SpatialMolecularBrightness(obj)
+            % can be modified
+            try
+%                 MB=obj.Molecular_Brightness_In_Time;
+            catch
+            end
         end
         %==================================================================
         
