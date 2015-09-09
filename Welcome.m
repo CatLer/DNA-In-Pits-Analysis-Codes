@@ -136,7 +136,17 @@ gridProceedAns = questdlg(sprintf('Proceed with Grid Registration in \n%s?',hand
 switch(gridProceedAns)
     case'Yes'
         close all;
-        status = GridRegistration(TifSample(sEmptyPath),TifSample(sNonEmptyPath),handles.folder);
+        emptyTif = TifSample(sEmptyPath);
+        if isempty(emptyTif)
+            Welcome();
+            return;
+        end
+        nonEmptyTif = TifSample(sNonEmptyPath);
+        if isempty(nonEmptyTif)
+            Welcome();
+            return;
+        end
+        status = GridRegistration(emptyTif,nonEmptyTif,handles.folder);
         if status
             analysisProceedAns = questdlg(sprintf('Grid Registration Sucessful \n Proceed with Analysis?'),'Confirm','Yes','No','Yes');
             switch(analysisProceedAns)
@@ -148,7 +158,7 @@ switch(gridProceedAns)
         end    
     case'No'
         return;
-end        
+end
 
 % --- Executes on button press in ExistingGrid.
 function ExistingGrid_Callback(hObject, eventdata, handles)
