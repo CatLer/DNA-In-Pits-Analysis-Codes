@@ -1,7 +1,7 @@
 
 function [Intensity,intensity,Background,Molecular_Brightness] = ...
     my_mask(input,background,num_rows,num_cols,r,Pairs) 
-Intensity=[]; intensity=[]; Background=[];
+Intensity=[]; intensity=[]; Background=[]; Molecular_Brightness=[];
 %====================== DIMENSIONS CHECK ==================================
 % coming soon
 %==========================================================================
@@ -13,14 +13,25 @@ mask=mask+logical(bsxfun(@plus,((1:size(input,2))-Pairs(j,1)).^2,...
     (transpose(1:size(input,1))-Pairs(j,2)).^2) <r^2);
 end
 mask=logical(mask); 
+mask=imclearborder(mask); %new
+% figure; imshow(mask)
 %======================= SIGNALS RETRIEVAL ================================
 w=min(round(0.1*size(input,3)),100); 
 % works only if pits are NOT connected
 Pits=bwconncomp(mask);
 Labels=cell2mat(reshape(struct2cell(regionprops(Pits,'centroid')),...
     [Pits.NumObjects,1]));
-[~,I]=min(pdist2(Pairs,Labels),[],2); Pits.PixelIdxList=Pits.PixelIdxList(I);
-
+[d,I]=min(pdist2(Pairs,Labels),[],2); 
+% needs some improvements in handling # of pits detected and masks
+if numel(I)>Pits.NumObjects
+I=I(d<r); I=unique(I,'stable'); % not the best solution
+end
+Pits.PixelIdxList=Pits.PixelIdxList(I);
+[Num_rows,Num_cols]=GuessNumRowsCols(Pits.NumObjects, num_rows, num_cols); %new
+if abs(Num_rows-num_rows)<=2 && abs(Num_cols-num_cols)<=2 % new
+    num_rows=Num_rows; num_cols=Num_cols;
+end
+Pits.NumObjects
 if Pits.NumObjects==num_cols*num_rows % check for connectivity
 %---------------------- absolute intensity -------------------------------- 
 %----------------------- Convert to cell array ----------------------------
@@ -65,6 +76,7 @@ Intensity=Intensity./fraction;
 intensity=intensity./fraction;
 Background=Background./fraction;
 Molecular_Brightness=Molecular_Brightness./fraction;
+% size(Molecular_Brightness)
 %--------------------------------------------------------------------------
 %-------------------------- Labelling check -------------------------------
 % Returns x,y coordinates of the COM of objects (not exact pits positions)

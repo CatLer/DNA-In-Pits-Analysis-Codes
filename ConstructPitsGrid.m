@@ -27,8 +27,7 @@ Template_nonempty_G=Variables.Template_nonempty_G;
 %--------------------------------------------------------------------------
 %------------------------ Define channels ---------------------------------
 % define Red Channel & Green Channel
-Red_Channel=pitsgrid(:,1:floor(end/2));
-Green_Channel=pitsgrid(:,ceil(end/2):end);
+[Red_Channel,Green_Channel] = FindChannelSeparation(pitsgrid); %new
 % offset of green channel (right hand side)
 Offset_G=size(Red_Channel,2);
 %--------------------------------------------------------------------------
@@ -47,12 +46,12 @@ Green_Channel=UniformBackgroundIllumination(Green_Channel,0);
 Pos_G(:,1)=Pos_G(:,1)+Offset_G;
 
 if N_rows_R==N_rows_G && N_cols_R==N_cols_G
-    N_rows=N_cols_R; N_cols=N_cols_G;
+    N_rows=N_rows_R; N_cols=N_cols_R;
 else
     error('Not same grid dimensions for both channels.');
 %     [Nr,nr]=max(N_rows_R,N_rows_G);
 %     [Nc,nc]=max(N_cols_R,N_cols_G);
-    % do something !!! 
+%     do something !!! 
 end
 
 % visualization
@@ -136,7 +135,9 @@ end
 
         % generate default grid using imaginary lines and angle
         x=0:Horizontal_spacing:size(Channel,2); x=x+a;
-        y=0:Vertical_spacing:size(Channel,1); y=y+b;        
+        y=0:Vertical_spacing:size(Channel,1); y=y+b; 
+        x=x(x>=0 & x<=size(Channel,1)); % new
+%         y=y(y>=0 & y<=size(Channel,2));
         [p,q]=meshgrid(x,y);Pairs=[p(:),q(:)];Pairs=sortrows(Pairs);
         R = [cosd(angle),-sind(angle);sind(angle),cosd(angle)];Pairs=Pairs*R;
 %         figure; imshow(Channel); %viscircles(Pairs,Radius*ones(size(Pairs,1),1),'EdgeColor','m');
@@ -151,9 +152,15 @@ end
         Differences(sqrt(sum(Differences.^2,2))>average_spacing-Radius,:)=[];
         offset=trimmean(Differences,5,1);
         Pairs(:,1)=Pairs(:,1)-offset(1);
-        Pairs(:,2)=Pairs(:,2)-offset(2);       
+        Pairs(:,2)=Pairs(:,2)-offset(2);
+%         Pairs = Pairs(Pairs(:,1)>=0,:); % new
+%         Pairs = Pairs(size(Channel,1)>=0,:); % new
         [N_rows,N_cols]=...
-            GuessNumRowsCols(size(Pairs,1), N_rows, N_cols);
+            GuessNumRowsCols(size(Pairs,1), N_rows, N_cols); % new
+        % remove incomplete pits (DONE IN MY_MASK)
+%         PairsPrime=mat2cell(Pairs,ones(size(Pairs,1),1),2); % new
+%         PairsPrime=reshape(PairsPrime,[N_rows,N_cols]); % new
+%         Use this in my_mask to keep track of what is removed!
 %       figure; imshow(Channel);  viscircles(Pairs,Radius*ones(size(Pairs,1),1),'EdgeColor','b');
     end
 %--------------------------------------------------------------------------

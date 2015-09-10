@@ -16,17 +16,24 @@ classdef PitsSample<handle
         Date=NaN;
         OBJ_T_In_Green_Laser=NaN;
         LENS_T_In_Green_Laser=NaN;
+        OBJ_T_In_Blue_Laser=NaN;
+        LENS_T_In_Blue_Laser=NaN; 
+        
         Try_Num=NaN; % add in green laser
         Oligo_Concentration=NaN;
         pUC19_Concentration=NaN;
         Linking_Number=NaN;
         Exposure_Time_In_Green_Laser=NaN;
+        Exposure_Time_In_Blue_Laser=NaN;
         Pit_Size=NaN;
         Buffer=NaN;
         
         Time_Average_Relative_Intensity_In_Green_Laser=[];
         Time_Average_Absolute_Intensity_In_Green_Laser=[];
-        Time_Average_Background_Intensity_In_Green_Laser=[];
+        Time_Average_Background_Intensity_In_Green_Laser=[];       
+        Time_Average_Relative_Intensity_In_Blue_Laser=[];
+        Time_Average_Absolute_Intensity_In_Blue_Laser=[];
+        Time_Average_Background_Intensity_In_Blue_Laser=[];
         
         Grid_Information=[];
         Cross_Talk_Coefficients=[];
@@ -34,6 +41,7 @@ classdef PitsSample<handle
         Green_Channel_In_Green_Laser=PitsChannel();
         Red_Channel_In_Green_Laser=PitsChannel();
         Red_Channel_In_Red_Laser=PitsChannel();
+        Blue_Channel_In_Blue_Laser=[];
         OBJ_T_Red_Laser=[];
         LENS_T_Red_Laser=[];
         Exposure_Time_In_Red_Laser=[];
@@ -43,6 +51,7 @@ classdef PitsSample<handle
         
         Pits_Positions_Red_Channel=[]; % move to grid information
         Pits_Positions_Green_Channel=[]; % move to grid information
+        Pits_Positions_Blue_Channel=[];
         Pit_Radius=[]; % move to grid information
         Number_Of_Rows=0; % move to grid information
         Number_Of_Columns=0; % move to grid information
@@ -77,7 +86,14 @@ classdef PitsSample<handle
     
     methods
         %============================ CONSTRUCTOR =========================
-        function obj=PitsSample(SampleName)
+        function obj=PitsSample(varargin) 
+            
+            narginchk(1,2); %new
+            SampleName=varargin{1}; %new
+            Experiment='DualView'; %new
+            if nargin==2 %new
+                Experiment=varargin{2};
+            end
             
             %--------------------- Load video -----------------------------
             Input=double(TifSample(SampleName));
@@ -89,11 +105,23 @@ classdef PitsSample<handle
             
             %------------------ Collect intensities -----------------------
             obj.CollectIntensitiesInPits(Input);
-            %--------------------------------------------------------------
+            %--------------------------------------------------------------    
             
+            switch Experiment
+            
+                case 'DualView'
+           
             %-------------------- FRET generator --------------------------
             obj.FRETGenerator();
             %--------------------------------------------------------------
+            
+                case 'SingleView'
+            
+            %-------------- Tracking, diffusion, binding ------------------
+            
+            %--------------------------------------------------------------
+            
+            end
             
             %-------------------- Save Pits videos ------------------------
             obj.SavePitsVideos(Input);

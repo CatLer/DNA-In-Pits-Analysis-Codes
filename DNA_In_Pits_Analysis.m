@@ -28,7 +28,8 @@ names=dir('*tif'); dates={names.datenum}; names={names.name};
 
 %---------------------- Experiment classification -------------------------
 namesR=cellfun(@(x)~isempty(x),regexpi(names,'Rlaser')); % red laser experiments
-namesG=cellfun(@(x)~isempty(x),regexpi(names,'Glaser')); % grene laser experiments
+namesG=cellfun(@(x)~isempty(x),regexpi(names,'Glaser')); % green laser experiments
+namesB=cellfun(@(x)~isempty(x),regexpi(names,'Blaser')); % blue laser experiments  % new
 % shouldn't be necessary, just to make sure
 if iscell(namesR) 
     namesR=cell2mat(namesR);
@@ -36,6 +37,11 @@ end
 if iscell(namesG) 
     namesG=cell2mat(namesG);
 end
+if iscell(namesB) % new
+    namesB=cell2mat(namesB);
+end
+Unspecified=ones(1,numel(names))-namesR-namesG-namesB;
+namesG=namesG+Unspecified;
 %--------------------------------------------------------------------------
 
 %==========================================================================
@@ -235,6 +241,20 @@ ObjTemp_R=ObjTemp_R(namesRR);
 LensTemp_R=LensTemp(namesR);
 LensTemp_R=LensTemp_R(namesRR);
 
+% blue laser experiments  % new
+names_B=names(namesB);
+dates_B=dates(namesB);
+ObjTemp_B=ObjTemp(namesB);
+LensTemp_B=LensTemp(namesB);
+TryNum_B=TryNum(namesB);
+qty_B=qty(namesB);
+qty2_B=qty2(namesB);
+lk_B=lk(namesB);
+Pitsize_B=Pitsize(namesB);
+LENS_B=LENS(namesB);
+TRY_B=TRY(namesB);
+OBJ_B=OBJ(namesB);
+
 % compare average T
 TR=nanmean([ObjTemp_R(:),LensTemp_R(:)],2);
 TG=nanmean([ObjTemp_G(:),LensTemp_G(:)],2);
@@ -264,7 +284,7 @@ for i=1:numel(names_G)
     my_name=strcat('Set_',mydate,OBJ_G{i},LENS_G{i},TRY_G{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
     display(my_name)
-    A=PitsSample(names_G{i});
+    A=PitsSample(names_G{i},'DualView');
     A.Date=datestr(dates_G{i});
     A.OBJ_T_In_Green_Laser=ObjTemp_G(i);
     A.LENS_T_In_Green_Laser=LensTemp_G(i);
@@ -296,6 +316,37 @@ for i=1:numel(names_G)
     assignin('base',my_name,A);
 end
 %--------------------------------------------------------------------------
+
+for i=1:numel(names_B)
+    if ~isnan(OBJ_B{i})
+        OBJ_B{i}=strcat('_',OBJ_B{i});
+    end
+    if ~isnan(LENS_B{i})
+        LENS_B{i}=strcat('_',LENS_B{i});
+    end
+    if ~isnan(TRY_B{i})
+        TRY_B{i}=strcat('_',TRY_B{i});
+    end
+    tic
+    mydate=datestr(dates_B{i}); mydate=strrep(mydate,' ','_');
+    mydate=strrep(mydate,':','_'); mydate=strrep(mydate,'-','_');
+    my_name=strcat('Set_',mydate,OBJ_B{i},LENS_B{i},TRY_B{i});
+    my_name=strrep(my_name,'.','_'); % remove it just for tests
+    display(my_name)
+    A=PitsSample(names_B{i},'SingleView');
+    A.Date=datestr(dates_B{i});
+    A.OBJ_T_In_Blue_Laser=ObjTemp_B(i);
+    A.LENS_T_In_Blue_Laser=LensTemp_B(i);
+    A.Try_Num=TryNum_B(i);
+    A.Oligo_Concentration=qty_B(i);
+    A.pUC19_Concentration=qty2_B(i);
+    A.Linking_Number=lk_B(i);
+    A.Pit_Size=Pitsize_B(i);
+    A.Exposure_Time_In_Blue_Laser=50.00;
+    A.Buffer=NaN;
+    toc
+    assignin('base',my_name,A);
+end
 
 %==========================================================================
 
