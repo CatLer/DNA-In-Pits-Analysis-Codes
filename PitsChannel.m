@@ -14,8 +14,9 @@ classdef PitsChannel<handle
     %   properly calculated.
     %%                              PROPERTIES
     properties
+        Positions=[];
         Relative_Intensity=[];
-        Molecular_Brightness_In_Time=[];
+        Variance_In_Time=[]; %%%
         Absolute_Intensity=[];
         Background_Intensity=[];
         Intensity_Maps=[];
@@ -47,7 +48,7 @@ classdef PitsChannel<handle
         %======================= CONSTRUCTOR ==============================
         function  obj=PitsChannel(varargin)
             if nargin>0
-                narginchk(4,4); % checks # of input args
+                narginchk(5,5); % checks # of input args
                 
                 %------------------- Initialization -----------------------
                 % RI: Relative intensity
@@ -57,6 +58,7 @@ classdef PitsChannel<handle
                 AI=varargin{2};
                 BI=varargin{3};
                 MB=varargin{4};
+                obj.Positions=varargin{5};
                 %----------------------------------------------------------
                 
                 %------------------- Intensity data -----------------------
@@ -92,13 +94,13 @@ classdef PitsChannel<handle
             obj.Background_Intensity=BI;
             obj.Average_Intensity=mean(RI(:));
             obj.Time_Average_Intensity=mean(RI,3);
-            obj.Molecular_Brightness_In_Time=MB;
+            obj.Variance_In_Time=MB;
             % add Photobleaching_cut function
         end
         %==================================================================
         
         %===================== MOLECULAR BRIGHTNESS =======================
-        function obj=SpatialMolecularBrightness(obj)
+        function obj=SpatialMolecularBrightness(obj,MB)
             % can be modified
             try
 %                 MB=obj.Molecular_Brightness_In_Time;

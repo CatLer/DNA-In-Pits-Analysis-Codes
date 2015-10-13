@@ -1,4 +1,4 @@
-function []=DNA_In_Pits_Analysis(foldername)
+function []=DNA_In_Pits_Analysis()
 %DNA_IN_PITS_ANALYSIS : Automatic analysis of the signals intensity in dual
 %view (red & green channel) in the pits, containing DNA. Analyses all *.tif
 %samples in the folder 'foldername'. Left hand side is the red channel and
@@ -21,9 +21,45 @@ function []=DNA_In_Pits_Analysis(foldername)
 %%                            CLASSIFICATION
 %===================== COLLECT SAMPLES TO ANALYZE =========================
 
+% CurrentFolder=pwd;
+Experiment=questdlg('What Type Of Experiment Do You Want To Analyze ?',...
+    'Dual View','Dual View', 'Single View', 'Single View');
+if isempty(Experiment)
+    return;
+end
+Experiment=strrep(Experiment,' ',''); % just removes space
+foldername=uigetdir(pwd,'Please Select The Folder Of The Videos To Analyze');
+if foldername==0
+    return;
+end
+Grid=[];
+q=questdlg('Do you want to use a predefined grid ?', 'Yes','Yes','No','No');
+if isempty(q)
+    return;
+end
+% DefaultGrid='';
+if strcmp(q,'Yes')
+    [FileName,PathName]=uigetfile('*.mat','Select The Grid You Want To Use');
+    DefaultGrid=fullfile(PathName,FileName);
+    Grid=load(DefaultGrid); Grid=Grid.varargout; 
+end
 %--------------------------- Detect samples -------------------------------
 cd(foldername);
 names=dir('*tif'); dates={names.datenum}; names={names.name};
+%--------------------------------------------------------------------------
+
+[Selection,ok] = listdlg('ListString',names); %
+if ok==0
+return;
+else
+    names=names(Selection);
+    dates=dates(Selection);
+end
+
+%------------------------------ WaitBar -----------------------------------
+perc=0;
+h=waitbar(perc/100,'Detecting Laser Color...');
+set(h, 'WindowStyle','modal', 'CloseRequestFcn','');
 %--------------------------------------------------------------------------
 
 %---------------------- Experiment classification -------------------------
@@ -42,11 +78,17 @@ if iscell(namesB) % new
 end
 Unspecified=ones(1,numel(names))-namesR-namesG-namesB;
 namesG=namesG+Unspecified;
+namesG=logical(namesG); namesR=logical(namesR); namesB=logical(namesB);
 %--------------------------------------------------------------------------
 
 %==========================================================================
 
 %========================EXPERIMENTAL CONDITIONS ==========================
+
+%------------------------------ WaitBar -----------------------------------
+perc=10;
+waitbar(perc/100,h,'Detecting Objective and Lens Temperatures...');
+%--------------------------------------------------------------------------
 
 %------------------------------ OBJ T -------------------------------------
 SplittedNames=cellfun(@(X) strsplit(X,'_'),names,'UniformOutput',false);
@@ -95,6 +137,11 @@ for i=1:numel(names)
 end
 %--------------------------------------------------------------------------
 
+%------------------------------ WaitBar -----------------------------------
+perc=20;
+waitbar(perc/100,h,'Detecting Try Number...');
+%--------------------------------------------------------------------------
+
 %----------------------------- TRY # --------------------------------------
 Try=cellfun(@(x) strfind(x,'Try'),SplittedNames,'UniformOutput',false);
 Try=cellfun(@(x) find(~cell2mat(cellfun(@isempty,x,...
@@ -115,6 +162,11 @@ for i=1:numel(names)
         end
     end
 end
+%--------------------------------------------------------------------------
+
+%------------------------------ WaitBar -----------------------------------
+perc=25;
+waitbar(perc/100,h,'Detecting Concentrations...');
 %--------------------------------------------------------------------------
 
 %--------------------- Quantity of Oligo-----------------------------------
@@ -165,6 +217,11 @@ for i=1:numel(names)
 end
 %--------------------------------------------------------------------------
 
+%------------------------------ WaitBar -----------------------------------
+perc=45;
+waitbar(perc/100,h,'Detecting Linking Number...');
+%--------------------------------------------------------------------------
+
 %--------------------- Linking Number -------------------------------------
 LK=cellfun(@(x) strfind(x,'Lk'),SplittedNames,'UniformOutput',false);
 LK=cellfun(@(x) find(~cell2mat(cellfun(@isempty,x,...
@@ -187,6 +244,11 @@ for i=1:numel(names)
         end
     end
 end
+%--------------------------------------------------------------------------
+
+%------------------------------ WaitBar -----------------------------------
+perc=50;
+waitbar(perc/100,h,'Detecting Grid Size...');
 %--------------------------------------------------------------------------
 
 %------------------------------ Grid size ---------------------------------
@@ -215,6 +277,11 @@ end
 
 %%                              ANALYSIS
 %===================== CREATE SAMPLE OBJECTS ==============================
+
+%------------------------------ WaitBar -----------------------------------
+perc=55;
+waitbar(perc/100,h,'Grouping Experimental Conditions For Each Sample...');
+%--------------------------------------------------------------------------
 
 %------------------------- Define type of experiment ----------------------
 % green laser experiments
@@ -266,9 +333,22 @@ LensTemp_R=LensTemp_R(IDR);
 
 %--------------------------------------------------------------------------
 
+%------------------------------ WaitBar -----------------------------------
+perc=70;
+waitbar(perc/100,h,'Creating the PitsSample objects...');
+%--------------------------------------------------------------------------
+
 %---------------------------- Create sample -------------------------------
 % for each experiment in green laser, create an object to store data
+
 for i=1:numel(names_G)
+    
+%------------------------------ WaitBar -----------------------------------
+t=strrep(sprintf('Green laser experiments %d/%d : %s',i,...
+    numel(names_G),names_G{i}),'_','\_');
+waitbar(perc/100,h,t);
+%--------------------------------------------------------------------------
+    
     if ~isnan(OBJ_G{i})
         OBJ_G{i}=strcat('_',OBJ_G{i});
     end
@@ -284,7 +364,7 @@ for i=1:numel(names_G)
     my_name=strcat('Set_',mydate,OBJ_G{i},LENS_G{i},TRY_G{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
     display(my_name)
-    A=PitsSample(names_G{i},'DualView');
+    A=PitsSample(names_G{i},Experiment,Grid);
     A.Date=datestr(dates_G{i});
     A.OBJ_T_In_Green_Laser=ObjTemp_G(i);
     A.LENS_T_In_Green_Laser=LensTemp_G(i);
@@ -318,6 +398,13 @@ end
 %--------------------------------------------------------------------------
 
 for i=1:numel(names_B)
+    
+%------------------------------ WaitBar -----------------------------------
+t=strrep(sprintf('Blue laser experiments %d/%d : %s',i,...
+    numel(names_B),names_B{i}),'_','\_');
+waitbar(perc/100,h,t);
+%--------------------------------------------------------------------------
+
     if ~isnan(OBJ_B{i})
         OBJ_B{i}=strcat('_',OBJ_B{i});
     end
@@ -333,7 +420,7 @@ for i=1:numel(names_B)
     my_name=strcat('Set_',mydate,OBJ_B{i},LENS_B{i},TRY_B{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
     display(my_name)
-    A=PitsSample(names_B{i},'SingleView');
+    A=PitsSample(names_B{i},Experiment,Grid);
     A.Date=datestr(dates_B{i});
     A.OBJ_T_In_Blue_Laser=ObjTemp_B(i);
     A.LENS_T_In_Blue_Laser=LensTemp_B(i);
@@ -351,11 +438,29 @@ end
 %==========================================================================
 
 %========================= SAVE SAMPLES ===================================
+
+%------------------------------ WaitBar -----------------------------------
+perc=95;
+waitbar(perc/100,h,'Saving Variables Generated In Workspace...');
+%--------------------------------------------------------------------------
+
 %----------------------- Save to mat file ---------------------------------
 name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
 expression=sprintf('save(''Samples analyzed on %s'')',name);
 evalin('base',expression);
 %--------------------------------------------------------------------------
 %==========================================================================
+
+%------------------------------ WaitBar -----------------------------------
+perc=100;
+waitbar(perc/100,h,'The Analysis Of The Selected Samples Is Complete.');
+set(h, 'WindowStyle','modal', 'CloseRequestFcn','closereq');
+%--------------------------------------------------------------------------
+
+% IF THERE IS AN ISSUE THE WAITBAR OR ANY FIGURE (CANT BE CLOSED), PLEASE 
+% USE :     
+%                       delete(findall(0)); 
+
+
 end
 

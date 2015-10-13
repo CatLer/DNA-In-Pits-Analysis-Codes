@@ -1,7 +1,7 @@
 
-function [Intensity,intensity,Background,Molecular_Brightness] = ...
-    my_mask(input,background,num_rows,num_cols,r,Pairs) 
-Intensity=[]; intensity=[]; Background=[]; Molecular_Brightness=[];
+function [Intensity,intensity,Background,Variance,Positions] = ...
+    my_mask(input,background,num_rows,num_cols,r,Pairs) %Molecular_Brightness
+Intensity=[]; intensity=[]; Background=[]; Variance=[]; % Molecular_Brightness
 %====================== DIMENSIONS CHECK ==================================
 % coming soon
 %==========================================================================
@@ -31,7 +31,7 @@ Pits.PixelIdxList=Pits.PixelIdxList(I);
 if abs(Num_rows-num_rows)<=2 && abs(Num_cols-num_cols)<=2 % new
     num_rows=Num_rows; num_cols=Num_cols;
 end
-Pits.NumObjects
+% Pits.NumObjects
 if Pits.NumObjects==num_cols*num_rows % check for connectivity
 %---------------------- absolute intensity -------------------------------- 
 %----------------------- Convert to cell array ----------------------------
@@ -46,6 +46,7 @@ intensity=cell2mat(cellfun(@(x) medfilt1(x,w),...
     size(intensity,3)),'UniformOutput',false));
 intensity = intensity(:,:,1+w:size(intensity,3)-w);
 % apparent molecular brightness
+% BgSubtractedInput=cellfun(@(x,y)x-y,input,background,'UniformOutput',false);
 Variance=cell2mat(cellfun(@(x) reshape(cellfun(@var,struct2cell(...
     regionprops(Pits,x,'PixelValues'))),[num_rows,num_cols]),...
     input,'UniformOutput',false));
@@ -53,9 +54,9 @@ Variance=cell2mat(cellfun(@(x) medfilt1(x,w),...
     mat2cell(Variance,ones(1,size(Variance,1)),ones(1,size(Variance,2)),...
     size(Variance,3)),'UniformOutput',false));
 Variance = Variance(:,:,1+w:size(Variance,3)-w);
-Molecular_Brightness=Variance./intensity;    
-[~,offset]=Intensity1Molecule(Molecular_Brightness(:));
-Molecular_Brightness=Molecular_Brightness-offset;
+% Molecular_Brightness=Variance./intensity;    
+% [~,offset]=Intensity1Molecule(Molecular_Brightness(:));
+% Molecular_Brightness=Molecular_Brightness-offset;
 %--------------------------------------------------------------------------
 %--------------------- background intensity -------------------------------
 Background=cell2mat(cellfun(@(x) reshape(cell2mat(struct2cell(...
@@ -75,13 +76,13 @@ Intensity=intensity-Background;
 Intensity=Intensity./fraction;
 intensity=intensity./fraction;
 Background=Background./fraction;
-Molecular_Brightness=Molecular_Brightness./fraction;
+% Molecular_Brightness=Molecular_Brightness./fraction;
+Variance=Variance./fraction;
 % size(Molecular_Brightness)
 %--------------------------------------------------------------------------
 %-------------------------- Labelling check -------------------------------
 % Returns x,y coordinates of the COM of objects (not exact pits positions)
-% blabla=reshape(struct2cell(regionprops(Pits,'Centroid')),[num_rows,num_cols]);
-% celldisp(Label)
+Positions=reshape(struct2cell(regionprops(Pits,'Centroid')),[num_rows,num_cols]);
 %--------------------------------------------------------------------------
 else
     % Plan B coming soon

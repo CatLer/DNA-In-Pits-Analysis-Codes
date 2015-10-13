@@ -27,6 +27,7 @@ classdef PitsSample<handle
         Exposure_Time_In_Blue_Laser=NaN;
         Pit_Size=NaN;
         Buffer=NaN;
+        Experiment=[];
         
         Time_Average_Relative_Intensity_In_Green_Laser=[];
         Time_Average_Absolute_Intensity_In_Green_Laser=[];
@@ -49,6 +50,7 @@ classdef PitsSample<handle
         FRET_Efficiency=FRETefficiency();
         FRET_Analysis=FRETanalysis();
         
+        Default_Grid_Used=[];
         Pits_Positions_Red_Channel=[]; % move to grid information
         Pits_Positions_Green_Channel=[]; % move to grid information
         Pits_Positions_Blue_Channel=[];
@@ -56,6 +58,7 @@ classdef PitsSample<handle
         Number_Of_Rows=0; % move to grid information
         Number_Of_Columns=0; % move to grid information
         
+        FullPath={};
         Warnings={};
         
     end
@@ -88,26 +91,46 @@ classdef PitsSample<handle
         %============================ CONSTRUCTOR =========================
         function obj=PitsSample(varargin) 
             
-            narginchk(1,2); %new
+            narginchk(1,3); %new
             SampleName=varargin{1}; %new
-            Experiment='DualView'; %new
-            if nargin==2 %new
-                Experiment=varargin{2};
+            obj.Experiment='DualView'; %new
+            if nargin>=2 %new
+                obj.Experiment=varargin{2};
+                if nargin==3
+                    obj.Default_Grid_Used=varargin{3};
+                end
             end
             
             %--------------------- Load video -----------------------------
             Input=double(TifSample(SampleName));
             %--------------------------------------------------------------
             
+            if isempty(obj.Default_Grid_Used)
             %-------------------- Generate grid ---------------------------
             obj.GeneratePitsGrid(Input);
             %--------------------------------------------------------------
+            else
+                if size(obj.Default_Grid_Used,2)==5
+                obj.Pit_Radius=obj.Default_Grid_Used{3};
+                obj.Pits_Positions_Red_Channel=obj.Default_Grid_Used{1};
+                obj.Pits_Positions_Green_Channel=obj.Default_Grid_Used{2};
+                obj.Number_Of_Rows=obj.Default_Grid_Used{4};
+                obj.Number_Of_Columns=obj.Default_Grid_Used{5};   
+                else
+                    if size(obj.Default_Grid_Used)==4
+                obj.Pit_Radius=obj.Default_Grid_Used{2};
+                obj.Pits_Positions_Green_Channel=obj.Default_Grid_Used{1};
+                obj.Number_Of_Rows=obj.Default_Grid_Used{3};
+                obj.Number_Of_Columns=obj.Default_Grid_Used{4};                          
+                    end
+                end
+            end
             
             %------------------ Collect intensities -----------------------
             obj.CollectIntensitiesInPits(Input);
             %--------------------------------------------------------------    
             
-            switch Experiment
+            switch obj.Experiment
             
                 case 'DualView'
            
@@ -131,6 +154,8 @@ classdef PitsSample<handle
             % experiment(?). Make sure to order the names such that all
             % green laser experiments are analyzed firt.
             
+            obj.FullPath=which(SampleName);
+            
         end
         %==================================================================
         
@@ -142,8 +167,14 @@ classdef PitsSample<handle
                 error(sprintf('GridRegistration.mat wasn''t found. \n Make sure the file is in the folder to be analyzed and the grid was properly registered.')) %#ok<SPERR>
             end
             try
+                if strcmpi(obj.Experiment,'DualView')
                 [Pos_R,Pos_G,Radius,num_rows,num_cols]=...
-                    ConstructPitsGrid(Input);
+                    ConstructPitsGrid(Input,0,obj.Experiment);
+                else
+                [Pos_G,Radius,num_rows,num_cols]=...
+                    ConstructPitsGrid(Input,0,obj.Experiment);
+                Pos_R=[];
+                end
                 obj.Pit_Radius=Radius;
                 obj.Pits_Positions_Red_Channel=Pos_R;
                 obj.Pits_Positions_Green_Channel=Pos_G;
@@ -164,22 +195,23 @@ classdef PitsSample<handle
             obj.Time_Average_Absolute_Intensity_In_Green_Laser=mean(Input,3);
             obj.Time_Average_Background_Intensity_In_Green_Laser=mean(Background,3);
             % intensities collection
-            [RIR,AIR,BIR,MBR]=...
+            [RIR,AIR,BIR,MBR,POSR]=...
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Red_Channel);
-            [RIG,AIG,BIG,MBG]=...
+            [RIG,AIG,BIG,MBG,POSG]=...
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Green_Channel);
             % remove pits on the edges
-            RIR=RIR(2:end-1,2:end-1,:); RIG=RIG(2:end-1,2:end-1,:);
-            AIR=AIR(2:end-1,2:end-1,:); AIG=AIG(2:end-1,2:end-1,:);
-            BIR=BIR(2:end-1,2:end-1,:); BIG=BIG(2:end-1,2:end-1,:);
-            MBR=MBR(2:end-1,2:end-1,:); MBG=MBG(2:end-1,2:end-1,:);
+%             RIR=RIR(2:end-1,2:end-1,:); RIG=RIG(2:end-1,2:end-1,:);
+%             AIR=AIR(2:end-1,2:end-1,:); AIG=AIG(2:end-1,2:end-1,:);
+%             BIR=BIR(2:end-1,2:end-1,:); BIG=BIG(2:end-1,2:end-1,:);
+%             MBR=MBR(2:end-1,2:end-1,:); MBG=MBG(2:end-1,2:end-1,:);
+%             POSR=POSR(2:end-1,2:end-1,:); POSG=POSG(2:end-1,2:end-1,:);
             % store data in channels
-            obj.Red_Channel_In_Green_Laser=PitsChannel(RIR,AIR,BIR,MBR);
-            obj.Green_Channel_In_Green_Laser=PitsChannel(RIG,AIG,BIG,MBG);
+            obj.Red_Channel_In_Green_Laser=PitsChannel(RIR,AIR,BIR,MBR,POSR);
+            obj.Green_Channel_In_Green_Laser=PitsChannel(RIG,AIG,BIG,MBG,POSG);
         end
         %==================================================================
         
@@ -243,9 +275,9 @@ classdef PitsSample<handle
                     obj.Number_Of_Columns,obj.Pit_Radius,...
                     obj.Pits_Positions_Red_Channel);
                 % remove pits on the edges
-                RIR=RIR(2:end-1,2:end-1,:);
-                AIR=AIR(2:end-1,2:end-1,:);
-                BIR=BIR(2:end-1,2:end-1,:);
+%                 RIR=RIR(2:end-1,2:end-1,:);
+%                 AIR=AIR(2:end-1,2:end-1,:);
+%                 BIR=BIR(2:end-1,2:end-1,:);
                 % store data in channel
                 obj.Red_Channel_In_Red_Laser=PitsChannel(RIR,AIR,BIR);
             catch
@@ -285,6 +317,30 @@ classdef PitsSample<handle
             DiffusionAnalysis(obj.Red_Channel_In_Green_Laser);
         end
         %==================================================================
+        
+        %==================================================================
+        function obj=RecalculateUsingNewGrid(obj,Video)
+%             
+%             if nargin==0
+%             Input=double(TifSample(obj.FullPath));
+%             else
+%                 Video=varargin{1};
+            %--------------------- Load video -----------------------------
+            Input=double(TifSample(Video));
+            %--------------------------------------------------------------
+%             end
+            
+            %------------------ Collect intensities -----------------------
+            obj.CollectIntensitiesInPits(Input);
+            %-------------------------------------------------------------- 
+            
+%             if nargin==1
+%             obj.FullPath=which(Video);
+%             end
+            
+        end
+        %==================================================================
+        
     end
     
     
