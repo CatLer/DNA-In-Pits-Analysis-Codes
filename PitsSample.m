@@ -117,7 +117,7 @@ classdef PitsSample<handle
                 obj.Number_Of_Rows=obj.Default_Grid_Used{4};
                 obj.Number_Of_Columns=obj.Default_Grid_Used{5};   
                 else
-                    if size(obj.Default_Grid_Used)==4
+                    if size(obj.Default_Grid_Used,2)==4
                 obj.Pit_Radius=obj.Default_Grid_Used{2};
                 obj.Pits_Positions_Green_Channel=obj.Default_Grid_Used{1};
                 obj.Number_Of_Rows=obj.Default_Grid_Used{3};
@@ -195,10 +195,19 @@ classdef PitsSample<handle
             obj.Time_Average_Absolute_Intensity_In_Green_Laser=mean(Input,3);
             obj.Time_Average_Background_Intensity_In_Green_Laser=mean(Background,3);
             % intensities collection
+            if ~isempty(obj.Pits_Positions_Red_Channel)
             [RIR,AIR,BIR,MBR,POSR]=...
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Red_Channel);
+            else
+                RIR = [];
+                AIR = [];
+                BIR = [];
+                MBR = [];
+                POSR = [];
+                
+            end 
             [RIG,AIG,BIG,MBG,POSG]=...
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...

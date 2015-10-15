@@ -2,6 +2,8 @@ function [] = LoadTifs()
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 List=dir('*.tif'); Names={List.name};
+[Selection,~] = listdlg('ListString',Names); 
+Names=Names(Selection);
 OBJT=num2cell(cellfun(@(x)regexpi(x,'\d{2}p\d{2}OBJT'),Names,'UniformOutput',false));
 LENST=num2cell(cellfun(@(x)regexpi(x,'\d{2}p\d{2}LENST'),Names,'UniformOutput',false));
 TRYNUM=num2cell(cellfun(@(x)regexpi(x,'Try\d{1}'),Names,'UniformOutput',false));

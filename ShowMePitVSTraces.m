@@ -26,8 +26,9 @@ viscircles(POSG,R,'EdgeColor','m'); hold off;
 title(strcat('Collapsed frames - ', Name),'interpreter','none');
 f2=gcf; set(f2,'Visible','off');
 
+
 V=Video(max(0,round(POSG(2)-R)):min(size(Video,1),round(POSG(2)+R)),...
-    max(0,round(POSG(1)-R)):min(size(Video,2),round(POSG(1)+R)),1000:2000);
+    max(0,round(POSG(1)-R)):min(size(Video,2),round(POSG(1)+R)),50:150);
 W=5; 
 n=floor(size(V,3)/W); V=V(:,:,1:n*W);
 V=reshape(V,size(V,1),size(V,2),W,n); 

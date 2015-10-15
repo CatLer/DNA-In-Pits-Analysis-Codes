@@ -1,4 +1,4 @@
-function [] = GridRegistration(pitsgrid_empty,pitsgrid_non_empty)
+function [] = GridRegistration(pitsgrid_empty,pitsgrid_non_empty,Experiment)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 pitsgrid_empty=mat2gray(sum(mat2gray(pitsgrid_empty),3));
@@ -9,10 +9,19 @@ pitsgrid_non_empty=mat2gray(sum(mat2gray(pitsgrid_non_empty),3));
 % pitsgrid_non_empty_R=SelectSample(' the red channel.',pitsgrid_non_empty);
 % pitsgrid_non_empty_G=SelectSample(' the green channel.',pitsgrid_non_empty);
 
+ if strcmpi(strrep(Experiment,' ',''),'DualView')
 pitsgrid_empty_R=pitsgrid_empty(:,1:floor(end/2));
 pitsgrid_empty_G=pitsgrid_empty(:,ceil(end/2):end);
 pitsgrid_non_empty_R=pitsgrid_non_empty(:,1:floor(end/2));
 pitsgrid_non_empty_G=pitsgrid_non_empty(:,ceil(end/2):end);
+ else
+     if strcmpi(strrep(Experiment,' ',''),'SingleView')
+pitsgrid_empty_R=[];
+pitsgrid_empty_G=pitsgrid_empty;
+pitsgrid_non_empty_R=[];
+pitsgrid_non_empty_G=pitsgrid_non_empty;         
+     end
+ end
 
 %------------------ Uniformize background illumination --------------------
 if ~isempty(pitsgrid_empty_R)
@@ -46,7 +55,7 @@ if ~isempty(pitsgrid_empty_G)
 end
 if ~isempty(pitsgrid_non_empty_R)
     Template_nonempty_R=SelectSample('a single non empty pit in the red channel.',pitsgrid_non_empty_R);
-    [Template_nonempty_R,Radius_nonempty_R]=detectPit(Template_nonempty_R);
+    [Template_nonempty_R,Radius_nonempty_R]=detectPit(Template_nonempty_R); %#ok<*ASGLU>
 end
 if ~isempty(pitsgrid_non_empty_G)
     Template_nonempty_G=SelectSample('a single non empty pit in the green channel.',pitsgrid_non_empty_G);

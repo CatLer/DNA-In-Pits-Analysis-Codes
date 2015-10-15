@@ -35,10 +35,13 @@ Template_nonempty_G=Variables.Template_nonempty_G;
 %--------------------------------------------------------------------------
 %------------------------ Define channels ---------------------------------
 if strcmpi(strrep(Experiment,' ',''),'DualView')
+    Experiment='Dual View';
 % define Red Channel & Green Channel
 [Red_Channel,Green_Channel] = FindChannelSeparation(pitsgrid); %new
 % offset of green channel (right hand side)
 Offset_G=size(Red_Channel,2);
+else
+     Experiment='Single View';
 end
 %--------------------------------------------------------------------------
 %---------------- Uniformize background illumination ----------------------

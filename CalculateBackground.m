@@ -7,7 +7,7 @@ function [background,Background] = CalculateBackground(Input,r)
 input=double(Input);
 input=mat2cell(input,size(input,1),size(input,2),ones(1,size(input,3)));
 %--------------------------------------------------------------------------
-%----------------------------- Background --------------------------------- 
+%----------------------------- Background ---------------------------------
 mat=ones(4*ceil(r)); mat=mat/numel(mat);
 background=cellfun(@(x) FastConv(x,mat),input,'UniformOutput',false);
 %-------------------------- Fast convolution ------------------------------
