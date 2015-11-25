@@ -1,8 +1,80 @@
-function [] = GridRegistration(pitsgrid_empty,pitsgrid_non_empty,Experiment)
+function [] = GridRegistration(varargin)
 %UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
-pitsgrid_empty=mat2gray(sum(mat2gray(pitsgrid_empty),3));
-pitsgrid_non_empty=mat2gray(sum(mat2gray(pitsgrid_non_empty),3));
+%   pitsgrid_empty,pitsgrid_non_empty,Experiment
+
+%-------------------------- Type of Experiment ----------------------------
+Experiment='';
+cellfun(@checkExperiment,varargin,'UniformOutput',false);
+    function checkExperiment(input)
+        if ischar(input)
+            Experiment=input;
+        end
+    end
+if isempty(Experiment) || ~strcmpi(strrep(Experiment,' ',''),'DualView') ...
+        && ~strcmpi(strrep(Experiment,' ',''),'SingleView')
+    Choices={'Dual View','Single View'};
+    [e,o]=listdlg('ListString',Choices,'PromptString',...
+        'Select the type of experiment','Name','Type of experiment');
+    if o==0
+        warning('You haven''t specified a type of experiment.');
+        return;
+    end
+    Experiment=Choices{e};
+end
+%--------------------------------------------------------------------------
+%------------------------- Check videos -----------------------------------
+pitsgrid_empty=[]; pitsgrid_non_empty=[];
+cellfun(@checkVideo,varargin,'UniformOutput',false);
+    function checkVideo(input)
+        if ~ischar(input) && size(input,1)*size(input,2)>1
+            if isempty(pitsgrid_empty)
+            pitsgrid_empty=input;
+            else
+                if isempty(pitsgrid_non_empty)
+                    pitsgrid_non_empty=input;
+                end
+            end
+        end
+    end
+%--------------------------------------------------------------------------
+%------------------------- For missing videos -----------------------------
+if isempty(pitsgrid_empty)
+foldername=uigetdir(pwd,'Please Select The Folder Of The First Video You Want to Use');
+if foldername==0
+    return;
+end
+expression=strcat(foldername,'\*tif');
+names=dir(expression); names={names.name};
+[Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
+    'Name','Videos Selection', 'PromptString', ...
+    'Please, select a video.','SelectionMode','single'); 
+if ok==0
+    return;
+else
+    names=char(names(Selection)); pitsgrid_empty=TifSample(fullfile(foldername,names));
+end
+end
+
+if isempty(pitsgrid_non_empty)
+foldername=uigetdir(pwd,'Please Select The Folder Of The Second Video You Want to Use');
+if foldername==0
+    return;
+end
+expression=strcat(foldername,'\*tif');
+names=dir(expression); names={names.name};
+[Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
+    'Name','Videos Selection', 'PromptString', ...
+    'Please, select a video.','SelectionMode','single'); 
+if ok==0
+    return;
+else
+    names=char(names(Selection)); pitsgrid_non_empty=TifSample(fullfile(foldername,names));
+end
+end
+%--------------------------------------------------------------------------
+
+pitsgrid_empty=mat2gray(sum(mat2gray(double(pitsgrid_empty)),3));
+pitsgrid_non_empty=mat2gray(sum(mat2gray(double(pitsgrid_non_empty)),3));
 %=========================== Enhance image ================================
 % pitsgrid_empty_R=SelectSample(' the red channel.',pitsgrid_empty);
 % pitsgrid_empty_G=SelectSample(' the green channel.',pitsgrid_empty);
@@ -46,25 +118,25 @@ Horizontal_spacing_R=[]; Horizontal_spacing_G=[];
 Vertical_spacing_R=[]; Vertical_spacing_G=[];
 
 if ~isempty(pitsgrid_empty_R)
-    Template_empty_R=SelectSample('a single empty pit in the red channel.',pitsgrid_empty_R);
+    Template_empty_R=SelectSample(' a single empty pit in the channel.',pitsgrid_empty_R);
     [Template_empty_R,Radius_empty_R]=detectPit(Template_empty_R);
 end
 if ~isempty(pitsgrid_empty_G)
-    Template_empty_G=SelectSample('a single empty pit in the green channel.',pitsgrid_empty_G);
+    Template_empty_G=SelectSample(' a single empty pit in the channel.',pitsgrid_empty_G);
     [Template_empty_G,Radius_empty_G]=detectPit(Template_empty_G);
 end
 if ~isempty(pitsgrid_non_empty_R)
-    Template_nonempty_R=SelectSample('a single non empty pit in the red channel.',pitsgrid_non_empty_R);
+    Template_nonempty_R=SelectSample(' a single non empty pit in the channel.',pitsgrid_non_empty_R);
     [Template_nonempty_R,Radius_nonempty_R]=detectPit(Template_nonempty_R); %#ok<*ASGLU>
 end
 if ~isempty(pitsgrid_non_empty_G)
-    Template_nonempty_G=SelectSample('a single non empty pit in the green channel.',pitsgrid_non_empty_G);
+    Template_nonempty_G=SelectSample(' a single non empty pit in the channel.',pitsgrid_non_empty_G);
     [Template_nonempty_G,Radius_nonempty_G]=detectPit(Template_nonempty_G);
 end
 if ~isempty(pitsgrid_empty_R) && ~isempty(Template_empty_R)
-    Template_2pits_Hon_R=SelectSample(' 2 horizontal empty pits in the red channel.',pitsgrid_empty_R);
+    Template_2pits_Hon_R=SelectSample(' 2 horizontal empty pits in the channel.',pitsgrid_empty_R);
     Horizontal_spacing_R=EstimateSpacing(Template_2pits_Hon_R,Template_empty_R,Radius_empty_R);
-    Template_2pits_Vet_R=SelectSample(' 2 vertical empty pits in the red channel.',pitsgrid_empty_R);
+    Template_2pits_Vet_R=SelectSample(' 2 vertical empty pits in the channel.',pitsgrid_empty_R);
     Vertical_spacing_R=EstimateSpacing(Template_2pits_Vet_R,Template_empty_R,Radius_empty_R);
 end
 if ~isempty(pitsgrid_empty_G) && ~isempty(Template_empty_G)
@@ -77,10 +149,36 @@ end
 Radius=min([Radius_empty_R,Radius_nonempty_R,Radius_empty_G,Radius_nonempty_G]);
 Horizontal_spacing=mean([Horizontal_spacing_R,Horizontal_spacing_G]); %#ok<*NASGU>
 Vertical_spacing=mean([Vertical_spacing_R,Vertical_spacing_G]);
+pause(0.1); close(gcf);
 
-save('GridRegistration.mat','Horizontal_spacing','Vertical_spacing',...
-    'Radius', 'Template_nonempty_R','Template_empty_R',...
-    'Template_nonempty_G','Template_empty_G');
+Variables=struct('Horizontal_spacing',Horizontal_spacing,...
+    'Vertical_spacing',Vertical_spacing,'Radius',Radius,...
+    'Template_nonempty_R',Template_nonempty_R,...
+    'Template_empty_R',Template_empty_R,...
+    'Template_nonempty_G',Template_nonempty_G,...
+    'Template_empty_G',Template_empty_G);    
+ConstructPitsGrid(pitsgrid_empty,2,Experiment,Variables);
+ConstructPitsGrid(pitsgrid_non_empty,2,Experiment,Variables);
+
+figure; uicontrol('style','pushbutton','Position',[50,100,450,200],...
+    'string','Save the Grid Registration File','fontsize',14,'callback',@saveMee);
+    function saveMee(~,~)
+        answer=questdlg('Do you want to save this Grid Registration?','yes','yes','no','no');
+        if strcmp(answer,'yes')
+            myName=inputdlg('Enter a name for the Grid Registration .mat file.');
+            if ~isempty(myName)
+                myName=strcat(char(myName),'.mat');
+                path=uigetdir(pwd,'Select the folder where to save the Grid Registration.');
+                if path~=0
+                    filename=fullfile(path,myName);
+                    save(filename,'Horizontal_spacing','Vertical_spacing',...
+                        'Radius', 'Template_nonempty_R','Template_empty_R',...
+                        'Template_nonempty_G','Template_empty_G');
+                    msgbox('The Grid Registration file has been saved.');
+                end
+            end
+        end
+    end
 %==========================================================================
 %--------------------- Spacing estimation function ------------------------
     function spacing=EstimateSpacing(Template,Template_empty,Radius_empty)
@@ -117,6 +215,7 @@ save('GridRegistration.mat','Horizontal_spacing','Vertical_spacing',...
                 'Double-click once you''re done.');
             choice = ...
                 questdlg(string,'Pit(s) Selection','Ok','No','No');
+            pause(0.1);
             switch choice
                 case 'Ok'
                     set(gcf,'MenuBar','None','Name',...

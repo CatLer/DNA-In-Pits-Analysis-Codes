@@ -18,6 +18,8 @@ function []=DNA_In_Pits_Analysis()
 %   properties are left to be set by the user. Creates PitsChannel objects
 %   for each channel, and a FRETefficiency object and a FRETanalysis
 %   object. Sets the object PitsSample.
+% DO NOT TAKE SINGLE VIEW RED LASER EXPERIMENTS WITHOUT GREEN LASER
+% EXPERIMENTS JUST YET. COMING SOON (WEEK OF 2015/10/19)
 %%                            CLASSIFICATION
 %===================== COLLECT SAMPLES TO ANALYZE =========================
 
@@ -28,6 +30,15 @@ if isempty(Experiment)
     return;
 end
 Experiment=strrep(Experiment,' ',''); % just removes space
+
+[file,path]=uigetfile('*.mat', 'Pick a Grid Registration file');
+if file==0
+    warning('You didn''t select a Grid Registration file!');
+    return;
+end
+GridRegistrationFile=fullfile(path,file);
+GridInformation=load(GridRegistrationFile);
+
 foldername=uigetdir(pwd,'Please Select The Folder Of The Videos To Analyze');
 if foldername==0
     return;
@@ -41,36 +52,59 @@ end
 if strcmp(q,'Yes')
     [FileName,PathName]=uigetfile('*.mat','Select The Grid You Want To Use');
     DefaultGrid=fullfile(PathName,FileName);
-    Grid=load(DefaultGrid); Grid=Grid.varargout; 
+    Grid=load(DefaultGrid); Grid=Grid.varargout;
 end
 %--------------------------- Detect samples -------------------------------
 cd(foldername);
+% try to get exposure times
+try
+    ExposureTimes=importdata('ExposureTimes.csv');
+    ExposureTimesNum=ExposureTimes.data;
+    ExposureTimesTxt=ExposureTimes.textdata;
+catch
+    ExposureTimes=[];
+end
+
+% make me an array of 'Default Grids'
+DefaultGrids=dir('*mat'); DefaultGrids={DefaultGrids.name};
+IamDefault=cellfun(@(x)~isempty(regexp(x,'*?DefaultGrid','once')),...
+    DefaultGrids,'UniformOutput',false);
+if iscell(IamDefault)
+   IamDefault=cell2mat(IamDefault); 
+end
+DefaultGrids=DefaultGrids(IamDefault); 
+
 names=dir('*tif'); dates={names.datenum}; names={names.name};
 %--------------------------------------------------------------------------
 
-[Selection,ok] = listdlg('ListString',names); %
+[Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
+    'Name','Videos Selection', 'PromptString', 'Please, select videos to analyze.'); %
 if ok==0
-return;
+    return;
 else
     names=names(Selection);
     dates=dates(Selection);
 end
 
+saveMe=questdlg('Do you want to save the result to a .mat file ?','yes','yes','no','no');
+saveMe=strcmp(saveMe,'yes');
+
 %------------------------------ WaitBar -----------------------------------
 perc=0;
 h=waitbar(perc/100,'Detecting Laser Color...');
 set(h, 'WindowStyle','modal', 'CloseRequestFcn','');
+set(h,'Resize','on');
 %--------------------------------------------------------------------------
 
 %---------------------- Experiment classification -------------------------
 namesR=cellfun(@(x)~isempty(x),regexpi(names,'Rlaser')); % red laser experiments
 namesG=cellfun(@(x)~isempty(x),regexpi(names,'Glaser')); % green laser experiments
-namesB=cellfun(@(x)~isempty(x),regexpi(names,'Blaser')); % blue laser experiments  % new
+namesB=cellfun(@(x)~isempty(x),regexpi(names,'Blaser')); % blue laser experiments
 % shouldn't be necessary, just to make sure
-if iscell(namesR) 
+if iscell(namesR)
     namesR=cell2mat(namesR);
 end
-if iscell(namesG) 
+if iscell(namesG)
     namesG=cell2mat(namesG);
 end
 if iscell(namesB) % new
@@ -79,6 +113,22 @@ end
 Unspecified=ones(1,numel(names))-namesR-namesG-namesB;
 namesG=namesG+Unspecified;
 namesG=logical(namesG); namesR=logical(namesR); namesB=logical(namesB);
+%--------------------------------------------------------------------------
+
+%--------------------- ASSOCIATION DEFAULT GRIDS --------------------------
+names_prime=cellfun(@RemExt,names,'UniformOutput',false);
+DefaultGrids_prime=cellfun(@RemExt,DefaultGrids,'UniformOutput',false);
+    function name=RemExt(name)
+    s=regexp(name,'\.\w*');
+    if ~isempty(s)
+    name=name(1:s(1)-1);
+    end
+    end
+% compare names_primes to Default Grids
+GetDefault=cellfun(@(x)strncmp(x,DefaultGrids_prime,length(x)),...
+    names_prime,'UniformOutput',false);
+GetDefaultG=GetDefault(namesG);
+GetDefaultB=GetDefault(namesB);
 %--------------------------------------------------------------------------
 
 %==========================================================================
@@ -326,7 +376,7 @@ OBJ_B=OBJ(namesB);
 TR=nanmean([ObjTemp_R(:),LensTemp_R(:)],2);
 TG=nanmean([ObjTemp_G(:),LensTemp_G(:)],2);
 TRR=createns(TR); [IDR,DeltaT]=knnsearch(TRR,TG);
-% use IDR to order 
+% use IDR to order
 names_R=names_R(IDR);
 ObjTemp_R=ObjTemp_R(IDR);
 LensTemp_R=LensTemp_R(IDR);
@@ -343,11 +393,10 @@ waitbar(perc/100,h,'Creating the PitsSample objects...');
 
 for i=1:numel(names_G)
     
-%------------------------------ WaitBar -----------------------------------
-t=strrep(sprintf('Green laser experiments %d/%d : %s',i,...
-    numel(names_G),names_G{i}),'_','\_');
-waitbar(perc/100,h,t);
-%--------------------------------------------------------------------------
+    %------------------------------ WaitBar -----------------------------------
+    t=strrep(sprintf('Green laser experiments %d/%d',i,numel(names_G)),'_','\_');
+    waitbar(perc/100,h,t);
+    %--------------------------------------------------------------------------
     
     if ~isnan(OBJ_G{i})
         OBJ_G{i}=strcat('_',OBJ_G{i});
@@ -364,7 +413,15 @@ waitbar(perc/100,h,t);
     my_name=strcat('Set_',mydate,OBJ_G{i},LENS_G{i},TRY_G{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
     display(my_name)
-    A=PitsSample(names_G{i},Experiment,Grid);
+    PriorityGrid=DefaultGrids(GetDefaultG{i});
+    if ~isempty(PriorityGrid)
+        PriorityGrid=load(PriorityGrid{1});
+        PriorityGrid=PriorityGrid.varargout;        
+    else
+        PriorityGrid=Grid;
+    end
+    A=PitsSample(GridRegistrationFile,'Green Laser',names_G{i},Experiment,PriorityGrid);
+    A.Grid_Information=GridInformation;
     A.Date=datestr(dates_G{i});
     A.OBJ_T_In_Green_Laser=ObjTemp_G(i);
     A.LENS_T_In_Green_Laser=LensTemp_G(i);
@@ -373,38 +430,59 @@ waitbar(perc/100,h,t);
     A.pUC19_Concentration=qty2_G(i);
     A.Linking_Number=lk_G(i);
     A.Pit_Size=Pitsize_G(i);
-    A.Exposure_Time_In_Green_Laser=50.00;
+    if ~isempty(ExposureTimes)
+        id=strcmp(names_G{i},strrep(ExposureTimesTxt,',','.tif'));
+        myExpTime=ExposureTimesNum(id);
+        if ~isempty(myExpTime)
+            A.Exposure_Time_In_Green_Laser=myExpTime;
+        end
+    end
     A.Buffer=NaN;
     toc
     % try to associate a red laser experiment for true FRET efficiency
     if ~isempty(names_R)
-        if DeltaT(i)<=1
-            A.RedChannelInRedLaser(names_R{i});
-            A.OBJ_T_Red_Laser=ObjTemp_R(i);
-            A.LENS_T_Red_Laser=LensTemp_R(i);
-            A.Exposure_Time_In_Red_Laser=50.00;
-            CalculateFRETWithRedLaser(A.FRET_Efficiency,...
-                A.Red_Channel_In_Green_Laser.Time_Average_Intensity,...
-                A.Red_Channel_In_Red_Laser.Time_Average_Intensity,...
-                1,1,1);
+        if strcmp(Experiment,'DualView')
+            if DeltaT(i)<=1
+                A.RedChannelInRedLaser(names_R{i});
+                A.OBJ_T_Red_Laser=ObjTemp_R(i);
+                A.LENS_T_Red_Laser=LensTemp_R(i);
+                if ~isempty(ExposureTimes)
+                    id=strcmp(names_R{i},strrep(ExposureTimesTxt,',','.tif'));
+                    myExpTime=ExposureTimesNum(id);
+                    if ~isempty(myExpTime)
+                        A.Exposure_Time_In_Red_Laser=myExpTime;
+                    end
+                end
+                CalculateFRETWithRedLaser(A.FRET_Efficiency,...
+                    A.Red_Channel_In_Green_Laser.Time_Average_Intensity,...
+                    A.Red_Channel_In_Red_Laser.Time_Average_Intensity,...
+                    1,1,1);
+            else
+                warning('No red laser experiment could be associated with this sample.')
+            end
         else
             warning('No red laser experiment could be associated with this sample.')
         end
-    else
-        warning('No red laser experiment could be associated with this sample.')
     end
     assignin('base',my_name,A);
+if saveMe==1
+name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
+expression=sprintf('save(''%s analyzed on %s'',''%s'')',my_name,name,my_name);
+evalin('base',expression);
+end   
 end
 %--------------------------------------------------------------------------
 
+% single view red laser experiments
+
+
 for i=1:numel(names_B)
     
-%------------------------------ WaitBar -----------------------------------
-t=strrep(sprintf('Blue laser experiments %d/%d : %s',i,...
-    numel(names_B),names_B{i}),'_','\_');
-waitbar(perc/100,h,t);
-%--------------------------------------------------------------------------
-
+    %------------------------------ WaitBar -----------------------------------
+    t=strrep(sprintf('Blue laser experiments %d/%d',i,numel(names_B)),'_','\_');
+    waitbar(perc/100,h,t);
+    %--------------------------------------------------------------------------
+    
     if ~isnan(OBJ_B{i})
         OBJ_B{i}=strcat('_',OBJ_B{i});
     end
@@ -420,7 +498,15 @@ waitbar(perc/100,h,t);
     my_name=strcat('Set_',mydate,OBJ_B{i},LENS_B{i},TRY_B{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
     display(my_name)
-    A=PitsSample(names_B{i},Experiment,Grid);
+    PriorityGrid=DefaultGrids(GetDefaultB{i});
+    if ~isempty(PriorityGrid)
+        PriorityGrid=load(PriorityGrid{1});
+        PriorityGrid=PriorityGrid.varargout;
+    else
+        PriorityGrid=Grid;
+    end    
+    A=PitsSample(GridRegistrationFile,'Blue Laser',names_B{i},Experiment,PriorityGrid);
+    A.Grid_Information=GridInformation;
     A.Date=datestr(dates_B{i});
     A.OBJ_T_In_Blue_Laser=ObjTemp_B(i);
     A.LENS_T_In_Blue_Laser=LensTemp_B(i);
@@ -429,10 +515,21 @@ waitbar(perc/100,h,t);
     A.pUC19_Concentration=qty2_B(i);
     A.Linking_Number=lk_B(i);
     A.Pit_Size=Pitsize_B(i);
-    A.Exposure_Time_In_Blue_Laser=50.00;
+    if ~isempty(ExposureTimes)
+        id=strcmp(names_B{i},strrep(ExposureTimesTxt,',','.tif'));
+        myExpTime=ExposureTimesNum(id);
+        if ~isempty(myExpTime)
+            A.Exposure_Time_In_Blue_Laser=myExpTime;
+        end
+    end
     A.Buffer=NaN;
     toc
     assignin('base',my_name,A);
+if saveMe==1
+name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
+expression=sprintf('save(''%s analyzed on %s'',''%s'')',my_name,name,my_name);
+evalin('base',expression);
+end     
 end
 
 %==========================================================================
@@ -445,9 +542,11 @@ waitbar(perc/100,h,'Saving Variables Generated In Workspace...');
 %--------------------------------------------------------------------------
 
 %----------------------- Save to mat file ---------------------------------
-name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
-expression=sprintf('save(''Samples analyzed on %s'')',name);
-evalin('base',expression);
+% if saveMe==1
+% name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
+% expression=sprintf('save(''Samples analyzed on %s'')',name);
+% evalin('base',expression);
+% end
 %--------------------------------------------------------------------------
 %==========================================================================
 
@@ -457,9 +556,9 @@ waitbar(perc/100,h,'The Analysis Of The Selected Samples Is Complete.');
 set(h, 'WindowStyle','modal', 'CloseRequestFcn','closereq');
 %--------------------------------------------------------------------------
 
-% IF THERE IS AN ISSUE THE WAITBAR OR ANY FIGURE (CANT BE CLOSED), PLEASE 
-% USE :     
-%                       delete(findall(0)); 
+% IF THERE IS AN ISSUE THE WAITBAR OR ANY FIGURE (CANT BE CLOSED), PLEASE
+% USE :
+%                       delete(findall(0));
 
 
 end

@@ -1,4 +1,4 @@
-function [varargout]=ConstructPitsGrid(pitsgrid,Visualization,Experiment)
+function [varargout]=ConstructPitsGrid(varargin)
 %CONSTRUCTPITSGRID : Uniformizes the background illumination. Uses 2D cross
 %correlation to determine where the sample pit (empty & non-empty) repeats
 %itself. Determines the angle from the Radon transform of the cross
@@ -7,10 +7,29 @@ function [varargout]=ConstructPitsGrid(pitsgrid,Visualization,Experiment)
 %output (the grid needs to be register once) to generate default grid and
 %fit it. Does it for both channels.
 %   Detailed explanation goes here
+
+narginchk(3,5);
+pitsgrid=varargin{1};
+Visualization=varargin{2};
+Experiment=varargin{3};
+if nargin>=4 && ~isempty(varargin{4})
+GridRegistrationFile=varargin{4};
+else
+    [file,path]=uigetfile('*.mat', 'Pick a Grid Registration file');
+    if file==0
+        warning('You didn''t select a Grid Registration file!');
+        return;
+    end
+    GridRegistrationFile=fullfile(path,file);    
+end
 %==========================================================================
 % type of experiment
 Experiment=char(Experiment);
-myName=inputname(1);
+if nargin==5
+myName=varargin{5};
+else
+    myName=inputname(1);
+end
 if ~(strcmpi(strrep(Experiment,' ',''),'DualView') ...
         || strcmpi(strrep(Experiment,' ',''),'SingleView'))
     Experiment='DualView';
@@ -20,7 +39,11 @@ end
 pitsgrid=mat2gray(mean(pitsgrid,3)); 
 % pitsgrid=imsharpen(pitsgrid); % new
 % load grid parameters
-Variables=load('GridRegistration.mat');
+if ischar(GridRegistrationFile)
+Variables=load(GridRegistrationFile);
+else
+    Variables=GridRegistrationFile;
+end
 % pit's dimension
 Radius=Variables.Radius;
 % spacings
@@ -58,15 +81,32 @@ end
 %------------------------ Generate grids ----------------------------------
 
 % generate pits' positions in green channel
-[Pos_G,N_rows_G,N_cols_G,PairsPrimeG]=ConstructMyGrid(Template_empty_G,Template_nonempty_G,Green_Channel);
+[Pos_G,N_rows_G,N_cols_G,angleG]=ConstructMyGrid(Template_empty_G,Template_nonempty_G,Green_Channel);
+if Visualization==1
+[Pos_G,N_rows_G,N_cols_G,RadiusG]=ResizeGrid(Pos_G,N_rows_G,N_cols_G,Radius,Green_Channel,angleG); 
+end
 N_rows=N_rows_G; N_cols=N_cols_G;
 
 if strcmpi(strrep(Experiment,' ',''),'DualView')
 % generate pits' positions in red channel
-[Pos_R,N_rows_R,N_cols_R,PairsPrimeR]=ConstructMyGrid(Template_empty_R,Template_nonempty_R,Red_Channel);
+if isempty(Template_empty_R) || isempty(Template_nonempty_R)
+    Template_empty_R=Template_empty_G;
+    Template_nonempty_R=Template_nonempty_G;
+end
+[Pos_R,N_rows_R,N_cols_R,angleR]=ConstructMyGrid(Template_empty_R,Template_nonempty_R,Red_Channel);
+if Visualization==1
+[Pos_R,N_rows_R,N_cols_R,RadiusR]=ResizeGrid(Pos_R,N_rows_R,N_cols_R,Radius,Red_Channel,angleR); 
+Radius=max(RadiusG,RadiusR);
+end
 Pos_G(:,1)=Pos_G(:,1)+Offset_G;
 % look for dimension dismatch if N_G~=N_R
+else
+if Visualization==1    
+    Radius=RadiusG;
 end
+end
+
+% output
 
 if strcmpi(strrep(Experiment,' ',''),'DualView')
 varargout={Pos_R,Pos_G,Radius,N_rows,N_cols};
@@ -74,20 +114,28 @@ else
     varargout={Pos_G,Radius,N_rows,N_cols};
 end
 
-if Visualization==1
-f=figure; imshow(pitsgrid);
+if Visualization>=1
+f=figure; 
+if strcmpi(strrep(Experiment,' ',''),'DualView')
+imshow(cat(2,Red_Channel,Green_Channel));
+else
+    imshow(Green_Channel);
+end
 viscircles(Pos_G,Radius*ones(size(Pos_G,1),1),'Edgecolor','g');
 if strcmpi(strrep(Experiment,' ',''),'DualView')
 viscircles(Pos_R,Radius*ones(size(Pos_R,1),1),'Edgecolor','r');
 end
+if Visualization==1
 uicontrol(f,'String','Save This Grid In A Mat File',...
-    'Position',[10,10,200,50],'FontSize',10,'Callback',@SaveMyGrid);
+    'Position',[50,200,250,100],'FontSize',12,'Callback',@SaveMyGrid);
+uiwait(f);
+end
 end
 
 function []=SaveMyGrid(~,~)
 Path=uigetdir('Select A Folder Where To Save This Grid...');
 if Path~=0
-    FileName=strcat(myName,'_DefaultGrid_',Experiment,'.mat'); 
+    FileName=strcat(myName,'_DefaultGrid_',Experiment,'.mat');
     FileName=fullfile(Path,FileName);
     save(FileName,'varargout');
     msgbox('The Grid Was Saved.');
@@ -98,7 +146,7 @@ end
 %==========================================================================
 %----------------------------- Functions ----------------------------------
 % function to generate pits' positions
-    function [Pairs,N_rows,N_cols,PairsPrime]=ConstructMyGrid(Template_empty,Template_nonempty,Channel)
+    function [Pairs,N_rows,N_cols,angle]=ConstructMyGrid(Template_empty,Template_nonempty,Channel)
        
         % find empty pits
         CC_1=normxcorr2(Template_empty,Channel);
@@ -205,14 +253,32 @@ end
         [N_rows,N_cols]=...
             GuessNumRowsCols(size(Pairs,1), N_rows, N_cols); % new
         
-%         PairsPrime=mat2cell(Pairs,ones(size(Pairs,1),1),2); % new
-%         PairsPrime=reshape(PairsPrime,[N_rows,N_cols]); % new
+        PairsPrime=permute(reshape(transpose(Pairs),...
+            [2,N_rows,N_cols]),[2,1,3]);
+        PP=sign(PairsPrime);
+        n_rows=N_rows; n_cols=N_cols;
+        
+        for p=1:size(PP,1)
+           if min(PP(p,2,:))==-1
+                PP(p,:,:)=NaN;
+                n_rows=n_rows-1;
+           end
+        end
 
-      R=[cosd(angle),sind(angle);-sind(angle),cosd(angle)]; PairsPrime=Pairs*R;
+        for q=1:size(PP,3)
+           if min(PP(:,1,q))==-1
+                PP(:,:,q)=NaN;
+                n_cols=n_cols-1;
+           end
+        end        
+
+        PP=~isnan(PP); PP=reshape(permute(PP,[1,3,2]),[N_cols*N_rows,2,1]);
+        Pairs=Pairs(PP(:,1),:); N_rows=n_rows; N_cols=n_cols;
+        
      
-      if Visualization==1
-      figure; imshow(Channel);  viscircles(Pairs,Radius*ones(size(Pairs,1),1),'EdgeColor','b');
-      end
+%       if Visualization==1
+%       figure; imshow(Channel);  viscircles(Pairs,Radius*ones(size(Pairs,1),1),'EdgeColor','b');
+%       end
       
     end
 %--------------------------------------------------------------------------

@@ -2,7 +2,17 @@ function [] = PitAvi(Pit,name)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 g=gcf;
-v = VideoWriter(strcat(name,'mpeg-4')); 
+path=uigetdir;
+if path==0
+    close(g);
+    return;
+end
+n=inputdlg('Enter a name for the video');
+if ~isempty(n)
+    name=n{1};
+end
+name=fullfile(path,name);
+v = VideoWriter(name); 
 v.FrameRate=10; open(v);
 set(gca,'nextplot','replacechildren'); 
 % Pit=mat2gray(Pit);
