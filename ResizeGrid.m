@@ -1,4 +1,5 @@
-function [New_Array,Nrows,Ncols,radius] = ResizeGrid(Array,Nrows,Ncols,radius,image,angle_o) 
+function [New_Array,Nrows,Ncols,radius] = ...
+    ResizeGrid(Array,Nrows,Ncols,radius,image,angle_o,Previous_Grid) 
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 Rotation_Matrix=@(a)[cosd(a),-sind(a);sind(a),cosd(a)];
@@ -28,6 +29,8 @@ Text=strcat(Text,sprintf('\n Before it saves the .mat file, it will wait that al
 uicontrol(f,'style','popupmenu','Position',[1400,700,350,200],'String',Text,'Fontsize',10,'ButtonDownFcn',@MoveUicontrolWithMouse);
 
 u=uicontrol(f,'style','popupmenu','Position',[25,25,250,25],'String',Old_Arrays,'Fontsize',14,'Callback',@GetBack);
+
+uicontrol(f,'style','pushbutton','Position',[25,775,250,50],'String','Use Previous Grid','Fontsize',14,'Callback',@UsePreviousGrid);
 
 uicontrol(f,'style','pushbutton','Position',[25,700,250,50],'String','SAVE DEFAULT GRID','Fontsize',16,'Callback',@SaveDefaultGrid);
 
@@ -65,6 +68,20 @@ uicontrol(f,'style','text','Position',[25,125,250,25],'String','Rotation angle',
 u6=uicontrol(f,'style','slider','Position',[25,100,250,25],'Callback',@SetAngle); set(u6,'Value',0.5);
 set(u6,'SliderStep',[0.001 0.001]);
 uicontrol(f,'style','pushbutton','Position',[275,100,50,25],'String','Keep','Fontsize',12,'Callback',@KeepThat);
+
+    function UsePreviousGrid(~,~)
+        if ~isempty(Previous_Grid)
+            Array=Previous_Grid{1};
+            New_Array=Array;
+            radius=Previous_Grid{2};
+            r=radius;
+            Nrows=Previous_Grid{3};
+            Ncols=Previous_Grid{4};
+            delete(v); figure(f);
+            v=viscircles(Array,radius*ones(size(Array,1),1),...
+                'EdgeColor','c');
+        end
+    end
 
     function GetBack(a,~)
         i=get(a,'Value');

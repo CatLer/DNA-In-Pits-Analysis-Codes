@@ -44,7 +44,7 @@ if foldername==0
     return;
 end
 Grid=[];
-q=questdlg('Do you want to use a predefined grid ?', 'Yes','Yes','No','No');
+q=questdlg('Do you want to use a single predefined grid for all samples?', 'Arctic Fox','Yes','No','No');
 if isempty(q)
     return;
 end
@@ -72,10 +72,48 @@ IamDefault=cellfun(@(x)~isempty(regexp(x,'*?DefaultGrid','once')),...
 if iscell(IamDefault)
    IamDefault=cell2mat(IamDefault); 
 end
-DefaultGrids=DefaultGrids(IamDefault); 
+DefaultGrids=DefaultGrids(IamDefault);
 
 names=dir('*tif'); dates={names.datenum}; names={names.name};
+
+% allow use to analyze only fitted grids
+All_Grids=cellfun(@RemExt,names,'UniformOutput',false); % remove extensions
+Fitted_Grids=cellfun(@RemExt,DefaultGrids,'UniformOutput',false);
+Indices=cellfun(@(x)regexp(x,'*?_DefaultGrid','once'),Fitted_Grids,'UniformOutput',false);
+Fitted_Grids=cellfun(@(x,y)x(1:y-1),Fitted_Grids,Indices,'UniformOutput',false);
+% compare names_primes to Default Grids
+Fitted_Grids=cellfun(@(x)strncmp(x,All_Grids,length(x)),...
+    Fitted_Grids,'UniformOutput',false);
+Fitted_Grids=reshape(Fitted_Grids,[1,1,numel(Fitted_Grids)]);
+if iscell(Fitted_Grids)
+    Fitted_Grids=cell2mat(Fitted_Grids);
+end
+Fitted_Grids=logical(sum(Fitted_Grids,3)); % uses alphabetic order
+
+names_Fitted=names(Fitted_Grids);
+dates_Fitted=dates(Fitted_Grids);
+
+names_Unfitted=names(~Fitted_Grids);
+dates_Unfitted=dates(~Fitted_Grids);
+
 %--------------------------------------------------------------------------
+
+Answer=questdlg('Pick an option...','Pingouin',...
+    'All Videos', 'Grid-fitted Videos',...
+'Non-Grid-Fitted Videos','Non-grid-fitted Videos');
+
+switch Answer
+    case 'Grid-fitted Videos'
+        names=names_Fitted;
+        dates=dates_Fitted;
+    case 'Non-grid-fitted Videos'
+        names=names_Unfitted;
+        dates=dates_Unfitted;
+end
+
+if isempty(names)
+    error('No video found.')
+end
 
 [Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
     'Name','Videos Selection', 'PromptString', 'Please, select videos to analyze.'); %
@@ -400,18 +438,25 @@ for i=1:numel(names_G)
     
     if ~isnan(OBJ_G{i})
         OBJ_G{i}=strcat('_',OBJ_G{i});
+    else
+        OBJ_G{i}='';
     end
     if ~isnan(LENS_G{i})
         LENS_G{i}=strcat('_',LENS_G{i});
+    else
+        LENS_G{i}='';
     end
     if ~isnan(TRY_G{i})
         TRY_G{i}=strcat('_',TRY_G{i});
+    else
+        TRY_G{i}='';
     end
     tic
     mydate=datestr(dates_G{i}); mydate=strrep(mydate,' ','_');
     mydate=strrep(mydate,':','_'); mydate=strrep(mydate,'-','_');
     my_name=strcat('Set_',mydate,OBJ_G{i},LENS_G{i},TRY_G{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
+    my_name=strrep(my_name,' ','');
     display(my_name)
     PriorityGrid=DefaultGrids(GetDefaultG{i});
     if ~isempty(PriorityGrid)
@@ -433,11 +478,15 @@ for i=1:numel(names_G)
     if ~isempty(ExposureTimes)
         id=strcmp(names_G{i},strrep(ExposureTimesTxt,',','.tif'));
         myExpTime=ExposureTimesNum(id);
-        if ~isempty(myExpTime)
-            A.Exposure_Time_In_Green_Laser=myExpTime;
-        end
+%         if ~isempty(myExpTime)
+            A.GiveMeBindingStatistics(myExpTime,NaN);
+%         end
+    else
+        A.GiveMeBindingStatistics(NaN,NaN);
     end
     A.Buffer=NaN;
+    name=datestr(now);
+    A.Last_Modification_Date=name;
     toc
     % try to associate a red laser experiment for true FRET efficiency
     if ~isempty(names_R)
@@ -449,9 +498,9 @@ for i=1:numel(names_G)
                 if ~isempty(ExposureTimes)
                     id=strcmp(names_R{i},strrep(ExposureTimesTxt,',','.tif'));
                     myExpTime=ExposureTimesNum(id);
-                    if ~isempty(myExpTime)
+%                     if ~isempty(myExpTime)
                         A.Exposure_Time_In_Red_Laser=myExpTime;
-                    end
+%                     end
                 end
                 CalculateFRETWithRedLaser(A.FRET_Efficiency,...
                     A.Red_Channel_In_Green_Laser.Time_Average_Intensity,...
@@ -466,7 +515,12 @@ for i=1:numel(names_G)
     end
     assignin('base',my_name,A);
 if saveMe==1
-name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
+    display(my_name)
+name=strrep(name,':','_'); name=strrep(name,'-','_');
+expression=sprintf(...
+    '%s.MatFileName=fullfile(''%s'',''%s analyzed on %s.mat'');',...
+    my_name,foldername,my_name,name);
+evalin('base',expression);
 expression=sprintf('save(''%s analyzed on %s'',''%s'')',my_name,name,my_name);
 evalin('base',expression);
 end   
@@ -485,18 +539,25 @@ for i=1:numel(names_B)
     
     if ~isnan(OBJ_B{i})
         OBJ_B{i}=strcat('_',OBJ_B{i});
+    else
+        OBJ_B{i}='';
     end
     if ~isnan(LENS_B{i})
         LENS_B{i}=strcat('_',LENS_B{i});
+    else
+        LENS_B{i}='';
     end
     if ~isnan(TRY_B{i})
         TRY_B{i}=strcat('_',TRY_B{i});
+    else
+        TRY_B{i}='';
     end
     tic
     mydate=datestr(dates_B{i}); mydate=strrep(mydate,' ','_');
     mydate=strrep(mydate,':','_'); mydate=strrep(mydate,'-','_');
     my_name=strcat('Set_',mydate,OBJ_B{i},LENS_B{i},TRY_B{i});
     my_name=strrep(my_name,'.','_'); % remove it just for tests
+    my_name=strrep(my_name,' ','');
     display(my_name)
     PriorityGrid=DefaultGrids(GetDefaultB{i});
     if ~isempty(PriorityGrid)
@@ -518,15 +579,23 @@ for i=1:numel(names_B)
     if ~isempty(ExposureTimes)
         id=strcmp(names_B{i},strrep(ExposureTimesTxt,',','.tif'));
         myExpTime=ExposureTimesNum(id);
-        if ~isempty(myExpTime)
-            A.Exposure_Time_In_Blue_Laser=myExpTime;
-        end
+%         if ~isempty(myExpTime)
+            A.GiveMeBindingStatistics(myExpTime,NaN);
+%         end
+    else
+        A.GiveMeBindingStatistics(NaN,NaN);
     end
     A.Buffer=NaN;
+    name=datestr(now);
+    A.Last_Modification_Date=name;    
     toc
     assignin('base',my_name,A);
 if saveMe==1
-name=datestr(now); name=strrep(name,':','_'); name=strrep(name,'-','_');
+name=strrep(name,':','_'); name=strrep(name,'-','_');
+expression=sprintf(...
+    '%s.MatFileName=fullfile(''%s'',''%s analyzed on %s.mat'');',...
+    my_name,foldername,my_name,name);
+evalin('base',expression);
 expression=sprintf('save(''%s analyzed on %s'',''%s'')',my_name,name,my_name);
 evalin('base',expression);
 end     

@@ -1,5 +1,5 @@
 function [Intensity,intensity,Background,Variance_Noise_Filtered,...
-    Variance,VarNoise,Positions,bg] = ...
+    Variance,VarNoise,Positions,bg,intensity_packed] = ...
     my_mask(input,background,num_rows,num_cols,r,Pairs) 
 Intensity=[]; intensity=[]; Background=[]; 
 Variance_Noise_Filtered=[]; Positions=[];
@@ -18,7 +18,7 @@ mask=logical(mask);
 % mask=imclearborder(mask); %new
 % figure; imshow(mask)
 %======================= SIGNALS RETRIEVAL ================================
-w=min(round(0.1*size(input,3)),100); 
+w=min(round(0.1*size(input,3)),100);    
 % works only if pits are NOT connected
 Pits=bwconncomp(mask);
 Labels=cell2mat(reshape(struct2cell(regionprops(Pits,'centroid')),...
@@ -59,8 +59,11 @@ Background = Background(:,:,1+w:size(Background,3)-w);
 %---------------------- absolute intensity -------------------------------- 
 %----------------------- Convert to cell array ----------------------------
 input=double(input);
+input_packed=Packing(input,min(25,size(input,3)));
 input=mat2cell(input,size(input,1),size(input,2),ones(1,size(input,3)));
 bg_uniformized_input=cellfun(@(x)x./bg,input,'UniformOutput',false);
+input_packed=mat2cell(input_packed,size(input_packed,1),...
+    size(input_packed,2),ones(1,size(input_packed,3)));
 
 Histograms=cellfun(@(x,y)AccumulateHistograms(x./bg),input,'UniformOutput',false);
 Histograms=cellfun(@RemoveSquishedOligo,Histograms,'UniformOutput',false);
@@ -100,6 +103,10 @@ intensity=cell2mat(cellfun(@(x) medfilt1(x,w),...
     size(intensity,3)),'UniformOutput',false));
 intensity = intensity(:,:,1+w:size(intensity,3)-w);
 
+intensity_packed=cell2mat(cellfun(@(x) reshape(cellfun(...
+    @DetermineOccupation,struct2cell(regionprops(Pits,x,'PixelValues'))),...
+    [num_rows,num_cols]),input_packed,'UniformOutput',false));
+
 Variance=cell2mat(cellfun(@(x) reshape(cellfun(@NaNVarPit,struct2cell(...
     regionprops(Pits,x,'PixelValues'))),[num_rows,num_cols]),...
     bg_uniformized_input,'UniformOutput',false)); % new
@@ -126,6 +133,14 @@ else
     % Plan B coming soon
     sprintf('Number of found pits doesn''t match dimensions.')
 end
+
+    function occupation=DetermineOccupation(Array)
+        Array=mat2gray(Array(~isnan(Array)));
+        Threshold=multithresh(Array,2);
+        Array=Array>Threshold(2);
+        Ratio=mean(Array);
+        occupation=Ratio<0.25;
+    end
 
 % to remove squished oligo
     function Out=AccumulateHistograms(image)

@@ -5,7 +5,7 @@ N=size(Signal,3);
 Signal=mat2cell(Signal,ones(1,size(Signal,1)),...
     ones(1,size(Signal,2)),size(Signal,3));
 % Diffusion curve 
-Signal=cellfun(@(x)xcov(x)/(mean(x)^2),Signal,'UniformOutput',false);
+Signal=cellfun(@(x)xcov(x)/(mean(x)^2),Signal,'UniformOutput',false); % xcorr or xcov
 Signal=cellfun(@(x)x(N:end),Signal,'UniformOutput',false);
 Coefficient=cell2mat(cellfun(@FitDiffusionCurve,Signal,'UniformOutput',false));
 % Normal diffusion model

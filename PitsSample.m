@@ -14,6 +14,7 @@ classdef PitsSample<handle
     %%                           PROPERTIES
     properties
         Date=NaN;
+        Last_Modification_Date=NaN;
         OBJ_T_In_Green_Laser=NaN;
         LENS_T_In_Green_Laser=NaN;
         OBJ_T_Red_Laser=NaN;
@@ -59,6 +60,7 @@ classdef PitsSample<handle
         Number_Of_Rows=0; 
         Number_Of_Columns=0; 
         
+        MatFileName={};
         FullPath={};
         Warnings={};
         
@@ -217,45 +219,119 @@ classdef PitsSample<handle
             end
             % intensities collection
             if ~isempty(obj.Pits_Positions_Red_Channel)
-            [RIR,AIR,BIR,RVR,AVR,BVR,POSR,BGR]=... 
+            [RIR,AIR,BIR,RVR,AVR,BVR,POSR,BGR,IPR]=... 
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Red_Channel);
             else
                 RIR=[]; AIR=[]; BIR=[]; 
                 RVR=[]; AVR=[]; BVR=[]; 
-                POSR=[]; BGR=[];
+                POSR=[]; BGR=[]; IPR=[];
             end 
             if ~isempty(obj.Pits_Positions_Green_Channel)
-            [RIG,AIG,BIG,RVG,AVG,BVG,POSG,BGG]=... 
+            [RIG,AIG,BIG,RVG,AVG,BVG,POSG,BGG,IPG]=... 
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Green_Channel);
             else
                 RIG=[]; AIG=[]; BIG=[]; 
                 RVG=[]; AVG=[]; BVG=[]; 
-                POSG=[]; BGG=[];
+                POSG=[]; BGG=[]; IPG=[];
             end
             if ~isempty(obj.Pits_Positions_Blue_Channel)
-            [RIB,AIB,BIB,RVB,AVB,BVB,POSB,BGB]=... 
+            [RIB,AIB,BIB,RVB,AVB,BVB,POSB,BGB,IPB]=... 
                 my_mask(Input,background,obj.Number_Of_Rows,...
                 obj.Number_Of_Columns,obj.Pit_Radius,...
                 obj.Pits_Positions_Blue_Channel);
             else
                 RIB=[]; AIB=[]; BIB=[]; 
                 RVB=[]; AVB=[]; BVB=[]; 
-                POSB=[]; BGB=[];
+                POSB=[]; BGB=[]; IPB=[];
             end  
             % store data in channels            
             obj.Blue_Channel_In_Blue_Laser=PitsChannel(...
-                RIB,AIB,BIB,RVB,POSB,AVB,BVB,BGB);   
+                RIB,AIB,BIB,RVB,POSB,AVB,BVB,BGB,obj.Pit_Radius,IPB);   
             obj.Green_Channel_In_Green_Laser=PitsChannel(...
-                RIG,AIG,BIG,RVG,POSG,AVG,BVG,BGG);
+                RIG,AIG,BIG,RVG,POSG,AVG,BVG,BGG,obj.Pit_Radius,IPG);
             obj.Red_Channel_In_Green_Laser=PitsChannel(...
-                RIR,AIR,BIR,RVR,POSR,AVR,BVR,BGR);
+                RIR,AIR,BIR,RVR,POSR,AVR,BVR,BGR,obj.Pit_Radius,IPR);
         end
         %==================================================================
-        
+        %============== BINDING STATISTICS ===========**********===========
+        function obj=GiveMeBindingStatistics(obj,ExposureTime,Binding_Parameter)
+            MainLaser=obj.Laser; Type=obj.Experiment;
+            if isempty(ExposureTime) || isnan(ExposureTime) %%%%%%
+                ExposureTime=50;
+            end
+            if strcmp(MainLaser,'Green Laser')
+                if isempty(obj.Exposure_Time_In_Green_Laser)||...
+                    isnan(obj.Exposure_Time_In_Green_Laser)
+                obj.Exposure_Time_In_Green_Laser=ExposureTime;
+                else
+                    ExposureTime=obj.Exposure_Time_In_Green_Laser;
+                end
+            else 
+                if strcmp(MainLaser,'Blue Laser')
+                    if isempty(obj.Exposure_Time_In_Blue_Laser)||...
+                    isnan(obj.Exposure_Time_In_Blue_Laser)
+                    obj.Exposure_Time_In_Blue_Laser=ExposureTime;
+                    else
+                        ExposureTime=obj.Exposure_Time_In_Blue_Laser;
+                    end
+                else
+                    if strcmp(MainLaser,'Red Laser')
+                        if isempty(obj.Exposure_Time_In_Red_Laser)||...
+                    isnan(obj.Exposure_Time_In_Red_Laser)
+                        obj.Exposure_Time_In_Red_Laser=ExposureTime;
+                        else
+                            ExposureTime=obj.Exposure_Time_In_Red_Laser;
+                        end
+                    end
+                end
+            end                    
+                       
+            if strcmp(Type,'DualView')
+                if strcmp(MainLaser,'Green Laser')
+                    Expr=sprintf(...
+                        'obj.Green_Channel_In_Green_Laser.Exposure_Time=%f;',...
+                        ExposureTime);
+                    eval(Expr);
+                    Expr=sprintf(...
+                        'obj.Green_Channel_In_Green_Laser.GenerateStatisticsBinding(%f);',Binding_Parameter);
+                    eval(Expr);
+                    Expr=sprintf(...
+                        'obj.Red_Channel_In_Green_Laser.Exposure_Time=%f;',...
+                        ExposureTime);
+                    eval(Expr);
+                    Expr=sprintf(...
+                        'obj.Red_Channel_In_Green_Laser.GenerateStatisticsBinding(%f);',Binding_Parameter);
+                    eval(Expr);
+                end
+            else
+                if strcmp(Type,'SingleView')
+                    if strcmp(MainLaser,'Green Laser')
+                        Expr=sprintf(...
+                            'obj.Green_Channel_In_Green_Laser.Exposure_Time=%f;',...
+                            ExposureTime);
+                        eval(Expr);
+                        Expr=sprintf(...
+                            'obj.Green_Channel_In_Green_Laser.GenerateStatisticsBinding(%f);',Binding_Parameter);
+                        eval(Expr);
+                    else
+                        if strcmp(MainLaser,'Blue Laser')
+                            Expr=sprintf(...
+                                'obj.Blue_Channel_In_Blue_Laser.Exposure_Time=%f;',...
+                                ExposureTime);
+                            eval(Expr);
+                            Expr=sprintf(...
+                                'obj.Blue_Channel_In_Blue_Laser.GenerateStatisticsBinding(%f);',Binding_Parameter);
+                            eval(Expr);
+                        end
+                    end
+                end
+            end
+        end
+        %==================================================================
         %=========================== FRET PROCESSING ======================
         function obj=FRETGenerator(obj)
             try
@@ -324,11 +400,15 @@ classdef PitsSample<handle
         %==================================================================
         
         %========================= GENERATE GRID CHECK ====================
-        function GridCheck(obj)
-            figure; MainLaser=obj.Laser;
+        function GridCheck(obj,varargin)
+            WantedDisplaySize=[512,512];
+            f=figure;
+            MainLaser=obj.Laser;
             if strcmp(MainLaser,'Green Laser')
                 imshow(adapthisteq(mat2gray(...
-                    obj.Time_Average_Absolute_Intensity_In_Green_Laser)));
+                    obj.Time_Average_Absolute_Intensity_In_Green_Laser)),...
+                    'InitialMagnification','fit');
+                truesize(gcf,WantedDisplaySize);
                 viscircles(obj.Pits_Positions_Red_Channel,...
                     ones(size(obj.Pits_Positions_Red_Channel,1),1)...
                     *obj.Pit_Radius,'EdgeColor','r');
@@ -344,12 +424,20 @@ classdef PitsSample<handle
                         *obj.Pit_Radius,'EdgeColor','b');
                 end
             end
+            if nargin>1
+                set(f,'visible','off');
+            end
         end
         %==================================================================
         
         %========================== COLLAPSED IMAGES ======================
-        function CollapseFrames(obj)
-            figure; MainLaser=obj.Laser;
+        function CollapseFrames(obj,varargin)
+            if nargin>1
+            figure('visible','off');
+            else
+                figure;
+            end
+            MainLaser=obj.Laser;
             if strcmp(MainLaser,'Green Laser')
                 subplot(1,3,1);                
                 surf(obj.Time_Average_Absolute_Intensity_In_Green_Laser);
@@ -374,8 +462,12 @@ classdef PitsSample<handle
                     [1,size(obj.Time_Average_Absolute_Intensity_In_Green_Laser,2)]);  
                 set(gca,'yLim',...
                     [1,size(obj.Time_Average_Absolute_Intensity_In_Green_Laser,1)]);                
-                title('Background Intensity');   
-                figure;
+                title('Background Intensity');
+                if nargin>1
+                figure('visible','off');
+                else
+                    figure;
+                end
                 surf(obj.Green_Channel_In_Green_Laser.Background_Illumination_Profile);
                 shading interp; colormap hot; view(3)
                 title('Background Illumination Profile');
@@ -416,7 +508,13 @@ classdef PitsSample<handle
         %========================== RECOUNT MOLECULES =====================
         function obj=RecountMolecules(obj)
             CountTheNumberOfFluophores(obj.Green_Channel_In_Green_Laser);
+            CountMoleculesFromSamples(obj.Green_Channel_In_Green_Laser);
             CountTheNumberOfFluophores(obj.Red_Channel_In_Green_Laser);
+            CountMoleculesFromSamples(obj.Red_Channel_In_Green_Laser);
+            CountTheNumberOfFluophores(obj.Red_Channel_In_Red_Laser);
+            CountMoleculesFromSamples(obj.Red_Channel_In_Red_Laser);
+            CountTheNumberOfFluophores(obj.Blue_Channel_In_Blue_Laser);
+            CountMoleculesFromSamples(obj.Blue_Channel_In_Blue_Laser); 
         end
         %==================================================================
         
@@ -467,14 +565,19 @@ classdef PitsSample<handle
         end
         %==================================================================
         
-        function obj=DetectBinding(obj,Recalculate)
+        function obj=DetectBinding(obj,Recalculate,Showme)
             if Recalculate==1
            SampledSpatialVariance(obj.Green_Channel_In_Green_Laser);
+           CountMoleculesFromSamples(obj.Green_Channel_In_Green_Laser);
            SampledSpatialVariance(obj.Red_Channel_In_Green_Laser);
+           CountMoleculesFromSamples(obj.Red_Channel_In_Green_Laser);
            SampledSpatialVariance(obj.Red_Channel_In_Red_Laser);
+           CountMoleculesFromSamples(obj.Red_Channel_In_Red_Laser);
            SampledSpatialVariance(obj.Blue_Channel_In_Blue_Laser);
+           CountMoleculesFromSamples(obj.Blue_Channel_In_Blue_Laser);
             end
         
+            if Showme==1
             List_Channel={'Green Channel','Red Channel','Blue Channel'};
             S=listdlg('ListString',List_Channel,'SelectionMode','Single');
             channel=List_Channel(S); channel=strrep(channel{1},' Channel','');
@@ -539,9 +642,9 @@ classdef PitsSample<handle
             
             figure; subplot(1,3,1); hist(AV); 
             subplot(1,3,2); hist(LB); subplot(1,3,3); hist(UB);       
+            end
             
         end
-        
         
         %==================================================================
         function obj=RecalculateUsingNewGrid(obj,Video)
@@ -565,6 +668,43 @@ classdef PitsSample<handle
             
         end
         %==================================================================
+        function SaveSample(obj,varargin)
+            narginchk(1,2);
+            myname=inputname(1);
+            myfile='';
+            if nargin==1
+                if isempty(obj.MatFileName)
+                    [FileName,PathName]=uiputfile('*.mat',myname);
+                    if isequal(FileName,0)
+                        sprintf('No file!!! (^<')
+                        return;
+                    end
+                    myfile=fullfile(PathName,FileName);
+                else
+                    myfile=obj.MatFileName;
+                end
+            else
+                if ischar(varargin{1})
+                else
+                    [FileName,PathName]=uiputfile('*.mat',myname);
+                    if isequal(FileName,0)
+                        sprintf('No file!!! (^<')
+                        return;
+                    end
+                    myfile=fullfile(PathName,FileName);
+                end
+            end
+            if isempty(myfile)
+                return;
+            else
+                % save object
+                obj.MatFileName=myfile;
+                obj.Last_Modification_Date=datestr(now);
+                expression=strcat('save(''',myfile,''',''',myname,''')');
+                evalin('base',expression);
+                sprintf('Done!')
+            end
+        end
         
     end
     

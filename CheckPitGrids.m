@@ -7,7 +7,7 @@ if nargin==0 || ~ischar(varargin{1}) || ~strcmpi(strrep(varargin{1},' ',''),'Dua
     choices={'Dual View','Single View'};
     [Selection,ok] = listdlg('ListString',choices,'Name',...
         'Type of Experiment', 'PromptString', ...
-        'Select a type of experiment.'); %
+        'Select a type of experiment.','SelectionMode','single'); %
 if ok==0
     return;
 else
@@ -56,6 +56,11 @@ if strcmp(quest,'Unfitted Grids') || strcmp(quest,'Fitted Grids')
     end
 end
 
+if isempty(names)
+    errordlg('No Video Matches Criteria');
+    return;
+end
+
 [Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
     'Name','Videos Selection', 'PromptString', 'Please, select videos.'); %
 if ok==0
@@ -74,7 +79,13 @@ names_prime=cellfun(@RemExt,names,'UniformOutput',false);
     name=name(1:s(1)-1);
     end
     end
-
+Previous_Grid=[]; 
+if strcmp(Experiment,'Dual View')
+    N=5;
+else
+    N=4;
+end
+Previous_Grid_Prime=cell(1,N);
 for i=1:numel(names)
     myName=strcat('S_',names_prime{i}(1:min(end,61)));
     expression=sprintf('%s=double(TifSample(''%s''));',myName,names{i});
@@ -85,8 +96,10 @@ for i=1:numel(names)
         e=sprintf('clear(''%s'')',char(myName)); evalin('caller',e);
         return;
     end
-    ConstructPitsGrid(evalin('caller',myName),1,Experiment,'',names_prime{i});
+    [Previous_Grid_Prime{:}]=ConstructPitsGrid(evalin('caller',myName),1,...
+        Experiment,'',names_prime{i},Previous_Grid);
     e=sprintf('clear(''%s'')',char(myName)); evalin('caller',e);
+    Previous_Grid=Previous_Grid_Prime;
 end
 
 end

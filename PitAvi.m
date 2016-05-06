@@ -1,7 +1,8 @@
 function [] = PitAvi(Pit,name)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
-g=gcf;
+% g=gcf;
+g=figure;
 path=uigetdir;
 if path==0
     close(g);
@@ -18,7 +19,12 @@ set(gca,'nextplot','replacechildren');
 % Pit=mat2gray(Pit);
 for k = 1:size(Pit,3)
    surf(medfilt2(mat2gray(Pit(:,:,k)),[5,5])); view(2); 
-   shading interp;  colormap parula;
+   shading interp;  
+   try
+       colormap parula;
+   catch
+       colormap hot;
+   end
    frame = getframe;
    writeVideo(v,frame);
 end

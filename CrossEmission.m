@@ -1,6 +1,4 @@
-function [CrossEmissionCoefficient,...
-    CrossEmissionCoefficientsAgainstTemperature]=...
-    CrossEmission(folder,option)
+function [CEC,CrossEmissionCoefficients]=CrossEmission(folder,option)
 %CrossEmission : Takes the name of the folder containing the samples to be
 %analyzed (only green fluophores present in the sample) as input argument.
 %Returns the cross emission factor as a percentage of the signal in the
@@ -18,7 +16,7 @@ W=what; W=W.mat; K=regexp(W,'Samples analyzed');
 K=cellfun(@(x)~isempty(x),K); W=W(K); 
 
 if ~isempty(W)
-    CrossEmissionCoefficientsAgainstTemperature=[];
+    CrossEmissionCoefficients=[];
     for i=1:numel(W)
         Var=load(W{i}); VarNames=fieldnames(Var);
         for j=1:numel(VarNames)
@@ -31,10 +29,8 @@ if ~isempty(W)
         Ratio=MBR/MBG;
         TOBJ=strcat(VarNames{j},'.OBJ_T_In_Green_Laser;');
         TLENS=strcat(VarNames{j},'.LENS_T_In_Green_Laser;');
-        TOBJ=evalin('caller',TOBJ); TLENS=evalin('caller',TLENS); 
-        T=mean([TOBJ,TLENS]);
-        CrossEmissionCoefficientsAgainstTemperature=...
-            cat(1,CrossEmissionCoefficientsAgainstTemperature,[T,Ratio]);
+        TOBJ=evalin('caller',TOBJ); TLENS=evalin('caller',TLENS); T=mean([TOBJ,TLENS]);
+        CrossEmissionCoefficients=cat(1,CrossEmissionCoefficients,[T,Ratio]);
             catch
                 warning(strcat(...
                     'Couldn''t calculate cross-emission coefficient of sample ',...
@@ -42,29 +38,17 @@ if ~isempty(W)
             end
         end
     end
-    if isempty(CrossEmissionCoefficientsAgainstTemperature)
-        CrossEmissionCoefficientsAgainstTemperature=zeros(0,2);
-    end
-    CrossEmissionCoefficient=mean(...
-        CrossEmissionCoefficientsAgainstTemperature(:,2));
+    CEC=mean(CrossEmissionCoefficients(:,2));
     figure; 
-    plot(CrossEmissionCoefficientsAgainstTemperature(:,1),...
-        CrossEmissionCoefficientsAgainstTemperature(:,2),'O--b');
+    plot(CrossEmissionCoefficients(:,1),CrossEmissionCoefficients(:,2),'O--b');
     title('Cross emission coefficient against temperature');
     ylabel('Ratio (bleedthrough of the green signal in the red channel)');
     xlabel('Temperature (°C)');
 else
     warning('No samples analyzed.')
-    CrossEmissionCoefficient=[];
-    CrossEmissionCoefficientsAgainstTemperature=[];
+    CEC=[];
+    CrossEmissionCoefficients=[];
 end
 
-if exist('CrossTalkCoeffs.mat','file')==2
-save('CrossTalkCoeffs.mat','CrossEmissionCoefficient',...
-    'CrossEmissionCoefficientsAgainstTemperature','-append');    
-else
-save('CrossTalkCoeffs.mat','CrossEmissionCoefficient',...
-    'CrossEmissionCoefficientsAgainstTemperature');
-end
 end
 

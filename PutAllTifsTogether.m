@@ -37,6 +37,7 @@ GetExposureTimes;
 for i=1:numel(TifFiles)
     movefile(fullfile(foldername,TifFiles{i}),Destination);
 end
+wait = waitbar(0,'Please wait...');
 for i=1:numel(Subdirectories_name)
     if ~strcmp(Subdirectories_name{i},'Folder to analyze')
     cd(fullfile(foldername,Subdirectories_name{i}));
@@ -50,6 +51,7 @@ for i=1:numel(Subdirectories_name)
     end
     GetExposureTimes;
     end
+    waitbar(i/numel(Subdirectories_name));
 end
 %%                      Exposure times & CSV
 % create CSV with exposure times
@@ -71,7 +73,7 @@ end
                 A=fileread(TxtFiles{k});
                 A=strsplit(A,',');
                 B=cellfun(@(x)regexp(x,'"Exposure-ms": \d*'),A,...
-                    'UniformOutput',false);
+                    'UniformOutput',false); %CONFIRMED that this is correct data. 
                 B=cellfun(@isempty,B); B=~B; A=A(B);
                 if ~isempty(A)
                     A=A{1};
@@ -83,5 +85,6 @@ end
         end
         Exposure_Times=cat(1,Exposure_Times,ExposureTimes);
     end
+close (wait);
 end
 

@@ -11,8 +11,8 @@ D=[1; unique(cumprod(perms(factor(Num_objects)),2))];
 [~,NR]=sort(abs(D-Num_rows));
 DR=D(NR);
 [~,NC]=sort(abs(D-Num_cols));
-DC=D(NC);
-PosN=[];
+DC=D(NC);  DR=transpose(DR(:));
+PosN=[]; 
 for j=1:numel(DC)
     PosN=cat(1,PosN,DC(j)*DR);
 end

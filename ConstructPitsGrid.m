@@ -8,7 +8,7 @@ function [varargout]=ConstructPitsGrid(varargin)
 %fit it. Does it for both channels.
 %   Detailed explanation goes here
 
-narginchk(3,5);
+narginchk(3,6);
 pitsgrid=varargin{1};
 Visualization=varargin{2};
 Experiment=varargin{3};
@@ -22,14 +22,21 @@ else
     end
     GridRegistrationFile=fullfile(path,file);    
 end
+Ver_Horz = varargin{5};
 %==========================================================================
 % type of experiment
 Experiment=char(Experiment);
-if nargin==5
+if nargin>=5
 myName=varargin{5};
 else
     myName=inputname(1);
 end
+if nargin==6
+    Previous_Grid=varargin{6};
+else
+    Previous_Grid=[];
+end
+
 if ~(strcmpi(strrep(Experiment,' ',''),'DualView') ...
         || strcmpi(strrep(Experiment,' ',''),'SingleView'))
     Experiment='DualView';
@@ -60,7 +67,7 @@ Template_nonempty_G=Variables.Template_nonempty_G;
 if strcmpi(strrep(Experiment,' ',''),'DualView')
     Experiment='Dual View';
 % define Red Channel & Green Channel
-[Red_Channel,Green_Channel] = FindChannelSeparation(pitsgrid); %new
+[Red_Channel,Green_Channel] = FindChannelSeparation(pitsgrid,Ver_Horz); %new
 % offset of green channel (right hand side)
 Offset_G=size(Red_Channel,2);
 else
@@ -83,27 +90,37 @@ end
 % generate pits' positions in green channel
 [Pos_G,N_rows_G,N_cols_G,angleG]=ConstructMyGrid(Template_empty_G,Template_nonempty_G,Green_Channel);
 if Visualization==1
-[Pos_G,N_rows_G,N_cols_G,RadiusG]=ResizeGrid(Pos_G,N_rows_G,N_cols_G,Radius,Green_Channel,angleG); 
+    if ~isempty(Previous_Grid)
+    Previous_Grid_G=Previous_Grid(end-3:end);
+    else
+        Previous_Grid_G=[];
+    end
+[Pos_G,N_rows_G,N_cols_G,RadiusG]=ResizeGrid(Pos_G,N_rows_G,N_cols_G,Radius,Green_Channel,angleG,Previous_Grid_G); 
 end
 N_rows=N_rows_G; N_cols=N_cols_G;
 
 if strcmpi(strrep(Experiment,' ',''),'DualView')
-% generate pits' positions in red channel
-if isempty(Template_empty_R) || isempty(Template_nonempty_R)
-    Template_empty_R=Template_empty_G;
-    Template_nonempty_R=Template_nonempty_G;
-end
-[Pos_R,N_rows_R,N_cols_R,angleR]=ConstructMyGrid(Template_empty_R,Template_nonempty_R,Red_Channel);
-if Visualization==1
-[Pos_R,N_rows_R,N_cols_R,RadiusR]=ResizeGrid(Pos_R,N_rows_R,N_cols_R,Radius,Red_Channel,angleR); 
-Radius=max(RadiusG,RadiusR);
-end
-Pos_G(:,1)=Pos_G(:,1)+Offset_G;
-% look for dimension dismatch if N_G~=N_R
+    % generate pits' positions in red channel
+    if isempty(Template_empty_R) || isempty(Template_nonempty_R)
+        Template_empty_R=Template_empty_G;
+        Template_nonempty_R=Template_nonempty_G;
+    end
+    [Pos_R,N_rows_R,N_cols_R,angleR]=ConstructMyGrid(Template_empty_R,Template_nonempty_R,Red_Channel);
+    if Visualization==1
+        if ~isempty(Previous_Grid)
+        Previous_Grid_R=Previous_Grid(cat(2,1,end-2:end));
+        else
+            Previous_Grid_R=[];
+        end
+        [Pos_R,N_rows_R,N_cols_R,RadiusR]=ResizeGrid(Pos_R,N_rows_R,N_cols_R,Radius,Red_Channel,angleR,Previous_Grid_R);
+        Radius=max(RadiusG,RadiusR);
+    end
+    Pos_G(:,1)=Pos_G(:,1)+Offset_G;
+    % look for dimension dismatch if N_G~=N_R
 else
-if Visualization==1    
-    Radius=RadiusG;
-end
+    if Visualization==1
+        Radius=RadiusG;
+    end
 end
 
 % output

@@ -8,7 +8,7 @@ input=double(Input);
 input=mat2cell(input,size(input,1),size(input,2),ones(1,size(input,3)));
 %--------------------------------------------------------------------------
 %----------------------------- Background ---------------------------------
-mat=ones(4*ceil(r)); mat=mat/numel(mat); h=fspecial('disk',ceil(r)); 
+mat=ones(max(4*ceil(r),40)); mat=mat/numel(mat); h=fspecial('disk',ceil(r)); %just changed it!
 background=cellfun(@(x) FastConv(x,mat),input,'UniformOutput',false);
 %-------------------------- Fast convolution ------------------------------
     function e=FastConv(a,b) % check if valid

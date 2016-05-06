@@ -13,8 +13,8 @@ for i=1:numel(A)
     Data_R=evalin('base',Data); Data_R(Data_R<abs(min(Data_R(:))))=0;
     data_R=mat2gray(Data_R);
     
-    [counts_G,binLocations] = imhist(data_G); figure; imhist(data_G)
-    [counts_R,~] = imhist(data_R); figure; imhist(data_R)
+    [counts_G,binLocations] = imhist(data_G);
+    [counts_R,~] = imhist(data_R);
     
     G=[]; R=[];
     for j=1:numel(binLocations)

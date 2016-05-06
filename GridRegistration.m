@@ -3,6 +3,7 @@ function [] = GridRegistration(varargin)
 %   pitsgrid_empty,pitsgrid_non_empty,Experiment
 
 %-------------------------- Type of Experiment ----------------------------
+close all;
 Experiment='';
 cellfun(@checkExperiment,varargin,'UniformOutput',false);
     function checkExperiment(input)
@@ -28,7 +29,7 @@ cellfun(@checkVideo,varargin,'UniformOutput',false);
     function checkVideo(input)
         if ~ischar(input) && size(input,1)*size(input,2)>1
             if isempty(pitsgrid_empty)
-            pitsgrid_empty=input;
+                pitsgrid_empty=input;
             else
                 if isempty(pitsgrid_non_empty)
                     pitsgrid_non_empty=input;
@@ -39,37 +40,38 @@ cellfun(@checkVideo,varargin,'UniformOutput',false);
 %--------------------------------------------------------------------------
 %------------------------- For missing videos -----------------------------
 if isempty(pitsgrid_empty)
-foldername=uigetdir(pwd,'Please Select The Folder Of The First Video You Want to Use');
-if foldername==0
-    return;
-end
-expression=strcat(foldername,'\*tif');
-names=dir(expression); names={names.name};
-[Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
-    'Name','Videos Selection', 'PromptString', ...
-    'Please, select a video.','SelectionMode','single'); 
-if ok==0
-    return;
-else
-    names=char(names(Selection)); pitsgrid_empty=TifSample(fullfile(foldername,names));
-end
+    foldername=uigetdir(pwd,'Please Select The Folder Of The First Video You Want to Use');
+    if foldername==0
+        errordlg('No Videos in Folder!');
+        return;
+    end
+    expression=strcat(foldername,'\*tif');
+    names=dir(expression); names={names.name};
+    [Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
+        'Name','Videos Selection', 'PromptString', ...
+        'Please, select a video.','SelectionMode','single');
+    if ok==0
+        return;
+    else
+        names=char(names(Selection)); pitsgrid_empty=TifSample(fullfile(foldername,names));
+    end
 end
 
 if isempty(pitsgrid_non_empty)
-foldername=uigetdir(pwd,'Please Select The Folder Of The Second Video You Want to Use');
-if foldername==0
-    return;
-end
-expression=strcat(foldername,'\*tif');
-names=dir(expression); names={names.name};
-[Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
-    'Name','Videos Selection', 'PromptString', ...
-    'Please, select a video.','SelectionMode','single'); 
-if ok==0
-    return;
-else
-    names=char(names(Selection)); pitsgrid_non_empty=TifSample(fullfile(foldername,names));
-end
+    foldername=uigetdir(pwd,'Please Select The Folder Of The Second Video You Want to Use');
+    if foldername==0
+        return;
+    end
+    expression=strcat(foldername,'\*tif');
+    names=dir(expression); names={names.name};
+    [Selection,ok] = listdlg('ListString',names,'ListSize',[500,600],...
+        'Name','Videos Selection', 'PromptString', ...
+        'Please, select a video.','SelectionMode','single');
+    if ok==0
+        return;
+    else
+        names=char(names(Selection)); pitsgrid_non_empty=TifSample(fullfile(foldername,names));
+    end
 end
 %--------------------------------------------------------------------------
 
@@ -80,20 +82,31 @@ pitsgrid_non_empty=mat2gray(sum(mat2gray(double(pitsgrid_non_empty)),3));
 % pitsgrid_empty_G=SelectSample(' the green channel.',pitsgrid_empty);
 % pitsgrid_non_empty_R=SelectSample(' the red channel.',pitsgrid_non_empty);
 % pitsgrid_non_empty_G=SelectSample(' the green channel.',pitsgrid_non_empty);
-
- if strcmpi(strrep(Experiment,' ',''),'DualView')
-pitsgrid_empty_R=pitsgrid_empty(:,1:floor(end/2));
-pitsgrid_empty_G=pitsgrid_empty(:,ceil(end/2):end);
-pitsgrid_non_empty_R=pitsgrid_non_empty(:,1:floor(end/2));
-pitsgrid_non_empty_G=pitsgrid_non_empty(:,ceil(end/2):end);
- else
-     if strcmpi(strrep(Experiment,' ',''),'SingleView')
-pitsgrid_empty_R=[];
-pitsgrid_empty_G=pitsgrid_empty;
-pitsgrid_non_empty_R=[];
-pitsgrid_non_empty_G=pitsgrid_non_empty;         
-     end
- end
+Ver_Horz = '';
+if strcmpi(strrep(Experiment,' ',''),'DualView')
+    Ver_Horz = questdlg('Vertical or Horizontal Partition of Channel?','Channel Partition','Horizontal','Vertical','Cancel','Vertical');
+    switch Ver_Horz
+        case 'Vertical'
+            pitsgrid_empty_R=pitsgrid_empty(:,1:floor(end/2));
+            pitsgrid_empty_G=pitsgrid_empty(:,ceil(end/2):end);
+            pitsgrid_non_empty_R=pitsgrid_non_empty(:,1:floor(end/2));
+            pitsgrid_non_empty_G=pitsgrid_non_empty(:,ceil(end/2):end);
+        case 'Horizontal'
+            pitsgrid_empty_R=pitsgrid_empty(1:floor(end/2),:);
+            pitsgrid_empty_G=pitsgrid_empty(ceil(end/2):end,:);
+            pitsgrid_non_empty_R=pitsgrid_non_empty(1:floor(end/2),:);
+            pitsgrid_non_empty_G=pitsgrid_non_empty(ceil(end/2):end,:);
+        case 'Cancle'
+            return;
+    end        
+else
+    if strcmpi(strrep(Experiment,' ',''),'SingleView')
+        pitsgrid_empty_R=[];
+        pitsgrid_empty_G=pitsgrid_empty;
+        pitsgrid_non_empty_R=[];
+        pitsgrid_non_empty_G=pitsgrid_non_empty;
+    end
+end
 
 %------------------ Uniformize background illumination --------------------
 if ~isempty(pitsgrid_empty_R)
@@ -156,9 +169,9 @@ Variables=struct('Horizontal_spacing',Horizontal_spacing,...
     'Template_nonempty_R',Template_nonempty_R,...
     'Template_empty_R',Template_empty_R,...
     'Template_nonempty_G',Template_nonempty_G,...
-    'Template_empty_G',Template_empty_G);    
-ConstructPitsGrid(pitsgrid_empty,2,Experiment,Variables);
-ConstructPitsGrid(pitsgrid_non_empty,2,Experiment,Variables);
+    'Template_empty_G',Template_empty_G);
+ConstructPitsGrid(pitsgrid_empty,2,Experiment,Variables,Ver_Horz);
+ConstructPitsGrid(pitsgrid_non_empty,2,Experiment,Variables,Ver_Horz);
 
 figure; uicontrol('style','pushbutton','Position',[50,100,450,200],...
     'string','Save the Grid Registration File','fontsize',14,'callback',@saveMee);
@@ -259,7 +272,7 @@ figure; uicontrol('style','pushbutton','Position',[50,100,450,200],...
                 helpdlg('Resize the circle to enclose the pit (outside). Double-click once you''re done.');
                 delete(h);
                 h=imellipse(gca,[Center(1)-Radius,Center(2)-Radius,2*Radius,2*Radius]);
-                setColor(h,'m'); %h.Deletable = false; 
+                setColor(h,'m'); %h.Deletable = false;
                 setFixedAspectRatioMode(h,true);
                 fcn = makeConstrainToRectFcn('imellipse',get(gca,'XLim'),get(gca,'YLim'));
                 setPositionConstraintFcn(h,fcn); wait(h); x=getPosition(h);

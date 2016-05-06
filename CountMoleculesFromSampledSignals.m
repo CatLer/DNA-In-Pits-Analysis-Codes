@@ -22,7 +22,7 @@ Output=[]; Relative_error=[];
 % 256 bins using grayscale
 input=Averages;
 [counts,binLocations] = hist(input,256);
-% figure; hist(input,256)
+%  figure; hist(input,256)
 
 f=fit(binLocations(:),counts(:),'gauss4');
 Coeffs=coeffvalues(f);

@@ -46,10 +46,13 @@ classdef PitsChannel<handle
         
         Binding=[];
         
+        BindingDetection=[];
+        
         % diffusion curves
         Diffusion_Curve=[];
-        Diffusion_Coefficient=[];        
-        % fluophores counting & activity
+        Diffusion_Coefficient=[];
+        
+%         % fluophores counting & activity
         Fluophore_Activity=[];
         Number_of_frames_packed=[];
         Number_Of_Fluophores_packed=[];
@@ -61,13 +64,17 @@ classdef PitsChannel<handle
         Molecular_Brightness=[];
         Mean_Molecular_Brightness=[];
         Offset=[];
-        % tracking
-        Tracking_Speed=[];
-        Tracking_Diffusion_Coefficient=[];
-        % videos for tracking
-        Intensity_Maps=[];
-        % warnings
+        
+%         % tracking
+%         Tracking_Speed=[];
+%         Tracking_Diffusion_Coefficient=[];
+%         % videos for tracking
+%         Intensity_Maps=[];
+      
+        % warnings        
         Warnings={};
+        Pit_Radius=[];
+        Exposure_Time=[];
     end
     %%                                 METHODS
     % Storage & Analysis: some functions can be modified after the creation
@@ -77,7 +84,7 @@ classdef PitsChannel<handle
         %======================= CONSTRUCTOR ==============================
         function  obj=PitsChannel(varargin)
             if nargin>0
-                narginchk(8,8); % checks # of input args
+                narginchk(10,10); % checks # of input args
                 
                 %------------------- Initialization -----------------------
                 % RI: Relative intensity
@@ -91,6 +98,8 @@ classdef PitsChannel<handle
                 AV=varargin{6};
                 BV=varargin{7};
                 BG=varargin{8};
+                obj.Pit_Radius=varargin{9};
+                obj.BindingDetection=varargin{10};
                 %----------------------------------------------------------
                 
                 %------------------- Intensity data -----------------------
@@ -105,12 +114,11 @@ classdef PitsChannel<handle
                 
                 %-------------------- Fluophore data ----------------------
                 obj.CountMoleculesFromSamples(); 
-                obj.CountTheNumberOfFluophores();
-                obj.CalculateFluophoreActivity();
+%                 obj.CountTheNumberOfFluophores();
+%                 obj.CalculateFluophoreActivity();
                 %----------------------------------------------------------
                 
                 %-------------------- Binding data ------------------------
-                obj.GenerateStatisticsBinding();
                 %----------------------------------------------------------
                 
                 %-------------------- Diffusion data ----------------------
@@ -118,7 +126,7 @@ classdef PitsChannel<handle
                 %----------------------------------------------------------
                 
                 %-------------------- Tracking data -----------------------
-                obj.TrackingAnalysis();
+%                 obj.TrackingAnalysis();
                 %----------------------------------------------------------
                 
             end
@@ -131,7 +139,7 @@ classdef PitsChannel<handle
             obj.Relative_Intensity=RI;
             obj.Absolute_Intensity=AI;
             obj.Background_Intensity=BI;
-            obj.Average_Intensity=mean(RI(:));
+            obj.Average_Intensity=nanmean(RI(:));
             obj.Time_Average_Intensity=mean(RI,3);
             obj.Variance_In_Time=MB;
             obj.Absolute_Variance=AV; % 
@@ -198,7 +206,7 @@ classdef PitsChannel<handle
                             obj.Sampled_Variance_Lower_Bound{p,q}=LB;
                             obj.Sampled_Variance_Upper_Bound{p,q}=UB;
                             obj.Sampled_Signals_On_Off{p,q}=OnOff;
-                            
+                            %sprintf('Pit(%d,%d)',p,q)
                         end
                     end
                 end
@@ -285,11 +293,14 @@ classdef PitsChannel<handle
         end
         %==================================================================
         %======================== STATISTICS VARIANCE =====================
-        function obj=GenerateStatisticsBinding(obj)
-            Statistics=GenerateBindingMatrix(obj.Sampled_Variance,...
+        function obj=GenerateStatisticsBinding(obj,Binding_Parameter)
+            [Statistics,BindingMats]=GenerateBindingMatrix(obj.Sampled_Variance,...
                 obj.Sampled_Variance_Lower_Bound,obj.Sampled_Variance_Upper_Bound,...
-                obj.Sampled_Average_Intensity,obj.Sampled_Number_Of_Molecules);
-            obj.Statistics_Binding=Statistics;            
+                obj.Sampled_Average_Intensity,obj.Sampled_Number_Of_Molecules,...
+                obj.Pit_Radius,obj.Exposure_Time,obj.Variance_In_Time,...
+                obj.Sampled_Intensity_1_Molecule,Binding_Parameter);
+            obj.Statistics_Binding=Statistics;
+            obj.Binding=BindingMats;
         end
         %==================================================================
         %======================== DIFFUSION ANALYSIS ======================
