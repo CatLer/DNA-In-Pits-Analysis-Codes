@@ -126,9 +126,9 @@ end
 % output
 
 if strcmpi(strrep(Experiment,' ',''),'DualView')
-varargout={Pos_R,Pos_G,Radius,N_rows,N_cols};
+varargout={Pos_R,Pos_G,Radius,N_rows,N_cols,angleG};
 else
-    varargout={Pos_G,Radius,N_rows,N_cols};
+    varargout={Pos_G,Radius,N_rows,N_cols,angleG};
 end
 
 if Visualization>=1

@@ -1,0 +1,8 @@
+function [] = mat2tif(matrix)
+
+matrix = double(matrix);
+for i=1:T
+  tiff = matrix(:, :, i);
+  outputFileName = sprintf('smb%d.tiff', i);
+  imwrite(tiff,outputFileName,'WriteMode', 'append')
+end

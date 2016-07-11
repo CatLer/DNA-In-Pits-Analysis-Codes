@@ -217,7 +217,7 @@ ratio_BB=WantedDisplaySize./size(Frame_B);
                 try
                     offset = evalin('base','videoOffset');
                 catch
-                    offset = 25;
+                    offset = 20;
                 end    
                 xpos = POS_GG{1,1}(1,1) - offset;
                 ypos = POS_GG{1,1}(1,2) - offset;
@@ -228,13 +228,17 @@ ratio_BB=WantedDisplaySize./size(Frame_B);
                     ypos = 0;
                 end    
                 [rows,columns] = size(POS_GG);
-                width = POS_GG{1,columns}(1,1) - xpos + offset;
-                if xpos + width > 512
-                    width = 512 - xpos;
+                width_lastcol = cell2mat(POS_GG(:,columns));
+                width_lastcol = width_lastcol(1,1:2:end);
+                width = max(width_lastcol) - xpos + offset;
+                if xpos + width > 1024
+                    width = 1024 - xpos;
                 end
-                height = POS_GG{rows,1}(1,2) - ypos + offset;
-                if ypos + height > 512
-                    height = 512 - ypos;
+                height_lastrow = cell2mat(POS_GG(rows,:));
+                height_lastrow = height_lastrow(1,2:2:end);
+                height = max(height_lastrow) - ypos + offset;
+                if ypos + height > 1024
+                    height = 1024 - ypos;
                 end    
                 MIJ.run('Specify...',strcat('width=',num2str(width),' height=',num2str(height),' x=',num2str(xpos),' y=',num2str(ypos)));
                 MIJ.run('Duplicate...','duplicate');
@@ -400,11 +404,6 @@ t=uitable('Data',logical(Data_Binding),'ColumnEditable',true,...
             BindingMats{r}(Indices(1),Indices(2))=NewData; % consider # of active fluophores
         end
     end
-%%Clear Selection
-    function ClearSelection(~,~)
-        Empty_Table = zeros(size(Data_Binding,1),(size(Data_Binding,2)));
-        set(t,'Data',logical(Empty_Table));
-    end    
 %%
 uicontrol('callback',@AssignBindingLevel,...
     'Position',[x(1)+x(3)+200, x(2)+20*size(Data_Binding,1)+50,100,50],'string','Binding Level');
@@ -428,12 +427,19 @@ questions=cell(1,2); questions{1}='Enter value'; questions{2}='Enter order';
     end
 %%
     function SetVideoGridOffset(~,~)
-        answer = inputdlg('Offset:');
-        assignin('base','videoOffset',answer{1});
+        try
+            answer = inputdlg('Offset:');
+            assignin('base','videoOffset',answer{1});
+        catch
+            print('Invalid Input');
+        end
     end
     function CloseVideos(~,~)
+        try
         MIJ.closeAllWindows;
         MIJ.exit;
+        catch
+        end    
     end    
 %%
 uicontrol('Callback',@SaveBinding,...
@@ -468,7 +474,7 @@ uicontrol('Callback',@SaveBinding,...
 %%
 F=figure('Menubar','none','Toolbar','figure','Numbertitle','off','Name',...
     'Binding Visualization Tool','colormap',colormap('bone'),'Position',...
-    [2500,200,1200,700]);
+    [2300,200,1400,700]);
 u1=uipanel('visible','on');
 try
     h1=copyobj(get(f,'Children'),u1,'legacy');
@@ -562,7 +568,6 @@ uimenu('Label','Check Binding Events','Callback',@VisualizationBinding);
         uicontrol('style','popup','String',{'No','Yes'});
         waitfor(my_figure);
     end
-uimenu('Label','Clear Pit Selections','Callback',@ClearSelection);
 uimenu('Label','Close Videos','Callback',@CloseVideos);
 uimenu('Label','Set Video Grid Offset','Callback',@SetVideoGridOffset);
 end

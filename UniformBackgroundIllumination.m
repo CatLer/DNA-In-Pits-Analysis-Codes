@@ -1,11 +1,14 @@
 function [Channel_prime,Fraction] = UniformBackgroundIllumination(Channel,Visualization)
-%UNIFORMBACKGROUNDILLUMINATION : Summary of this function goes here
-%   Detailed explanation goes here
+%input video data and a logical. The video data will be put through a 
+%2D convolution with a uniform matrix to find the background illumination,
+%which will then be subtracted from the video. The logical indicates whether
+%or not plots of this process are wanted in order to visualize it.
 
 %=============== APPROXIMATE BACKGROUND ILLUMINATION ======================
 %------------------------- 2D Convolution ---------------------------------
-% define window size
+% define window size to be 5% of the longest edge of the channel
 window = round(0.05*max(size(Channel)));
+%if window has an even number of pixels, add 1
 if mod(window,2)==0
     window=window+1;
 end
@@ -16,29 +19,19 @@ figure; surf(Channel); shading flat
 %**************************************************************************
 end
 
-% dilate the image for the convolution 
-Channel_prime = padarray(padarray(Channel,[1,1]*floor(window/2),...
-    'replicate','pre'),[1,1]*floor(window/2),'replicate','post');
-% convolution to smooth the surface
-Channel_prime = conv2(Channel_prime,ones(window),'valid');
+Channel_prime=imfilter(Channel,ones(window));
 Fraction=mat2gray(Channel_prime);
 
+%see the background illumination
 if Visualization>0
 %************************* Visualization **********************************
 figure; surf(Channel_prime); shading flat
-% [counts,binlocations]=imhist(mat2gray(Channel_prime));
-% counts(counts<iqr(counts))=0; binlocations(counts==0)=[]; 
-% minimum=min(binlocations)*max(Channel_prime(:));
-% maximum=max(binlocations)*max(Channel_prime(:));
-% Channel_prime(Channel_prime<minimum)=minimum; 
-% Channel_prime(Channel_prime>maximum)=maximum;
-% figure; surf(Channel_prime); shading flat
 figure; surf(Fraction); shading flat
 %**************************************************************************
 end
 
-%--------------------------------------------------------------------------
 %--------------------- Remove non-uniform illumination --------------------
+%why times 2? It seems to work better. Idk.
 Channel_prime=2*mat2gray(Channel)-mat2gray(Channel_prime);
 
 if Visualization>0
@@ -49,14 +42,7 @@ subplot(1,3,3);imshow(imsharpen(adapthisteq(mat2gray(Channel_prime))),[]);
 %**************************************************************************
 end
 
+%sharpen and enhance contrast
 Channel_prime = imsharpen(adapthisteq(mat2gray(Channel_prime)));
-
-%--------------------------------------------------------------------------
-%==========================================================================
-
-% use morphological opening
-% use histeq 
-% use adapthisteq
-
 end
 

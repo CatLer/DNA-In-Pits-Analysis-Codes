@@ -32,7 +32,7 @@ TifFiles=dir(strcat(foldername,'/*.tif'));
 if ~isempty(TifFiles)
     TifFiles={TifFiles.name};
 end
-GetExposureTimes;
+
 % move the tif files to the folder
 for i=1:numel(TifFiles)
     movefile(fullfile(foldername,TifFiles{i}),Destination);
@@ -63,6 +63,7 @@ end
   fclose(fid);
 
     function []=GetExposureTimes()
+        try
         % find txt files
         TxtFiles=dir('*.txt');
         if ~isempty(TxtFiles)
@@ -84,7 +85,10 @@ end
                 end
         end
         Exposure_Times=cat(1,Exposure_Times,ExposureTimes);
+        catch
+        end
     end
-close (wait);
+    close(wait);
 end
+
 

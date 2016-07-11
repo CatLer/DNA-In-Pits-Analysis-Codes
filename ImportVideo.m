@@ -1,4 +1,4 @@
-function movieArray = ImportVideo(dataDir, fileName, varargin)
+function movieArray = ImportVideo(data, varargin)
 % This function imports a video into Matlab and makes it into a 3d array.
 % Possible varargin include 'startFrame' and 'endFrame', allowing the user
 % to choose the first and last frames to upload. Used portions of a code
@@ -9,7 +9,6 @@ function movieArray = ImportVideo(dataDir, fileName, varargin)
 %% Initialize Variables
 % Initialize and deal with varargin.
 startFrame = 1;
-data = [dataDir '\' fileName '.tif'];
 imageInfo=imfinfo(data);
 mImage=imageInfo(1).Width;
 nImage=imageInfo(1).Height;

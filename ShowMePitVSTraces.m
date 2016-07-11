@@ -120,25 +120,25 @@ end
 f1=figure('Visible','off');
 c = uicontextmenu;
 
-p1=subplot(2,1,1);  hold on;
-try
-    levels=statelevels(permute(RI,[3,2,1]),100,'mean');
-    line(get(gca,'xLim'),[1,1]*levels(1),'Color',[0.8,0.8,0.8]);
-    line(get(gca,'xLim'),[1,1]*levels(2),'Color',[0.8,0.8,0.8]);
-catch
-end
-plot(permute(RI,[3,2,1]),'k');
-PlotNumMolecules(permute(RI,[3,2,1])); % UNCOMMENT THIS FOR COLORS
-title(sprintf('Pit(%d,%d)',row,column),'fontsize',14);
-xlabel('Frame Number','fontsize',12);
-ylabel('Spatial Average','fontsize',12);
-try
-    set(gca,'yLim',[min(RI),max(RI)]);
-catch
-end
-set(p1,'UIContextMenu',c);
+% p1=subplot(2,1,1);  hold on;
+% try
+%     levels=statelevels(permute(RI,[3,2,1]),100,'mean');
+%     line(get(gca,'xLim'),[1,1]*levels(1),'Color',[0.8,0.8,0.8]);
+%     line(get(gca,'xLim'),[1,1]*levels(2),'Color',[0.8,0.8,0.8]);
+% catch
+% end
+% plot(permute(RI,[3,2,1]),'k');
+% PlotNumMolecules(permute(RI,[3,2,1])); % UNCOMMENT THIS FOR COLORS
+% title(sprintf('Pit(%d,%d)',row,column),'fontsize',14);
+% xlabel('Frame Number','fontsize',12);
+% ylabel('Spatial Average','fontsize',12);
+% try
+%     set(gca,'yLim',[min(RI),max(RI)]);
+% catch
+% end
+% set(p1,'UIContextMenu',c);
 
-p2=subplot(2,1,2); hold on;
+p2=subplot(2,1,1); hold on;
 try
     levels=statelevels(permute(VAR,[3,2,1]),100,'mean');
     line(get(gca,'xLim'),[1,1]*levels(1),'Color',[0.8,0.8,0.8]);
@@ -155,6 +155,28 @@ try
 catch
 end
 set(p2,'UIContextMenu',c);
+
+%Plot Median Filtered Variance
+p3=subplot(2,1,2); hold on;
+try
+    levels=statelevels(permute(VAR,[3,2,1]),100,'mean');
+    line(get(gca,'xLim'),[1,1]*levels(1),'Color',[0.8,0.8,0.8]);
+    line(get(gca,'xLim'),[1,1]*levels(2),'Color',[0.8,0.8,0.8]);
+catch
+end
+
+
+plot(medfilt1(permute(VAR,[3,2,1]),20),'k');
+PlotNumMolecules(permute(VAR,[3,2,1])); % UNCOMMENT THIS FOR COLORS
+% title(sprintf('Pit(%d,%d)',row,column),'fontsize',14);
+xlabel('Frame Number','fontsize',12);
+ylabel('Filtered Spatial Variance','fontsize',12);
+try
+    set(gca,'yLim',[min(VAR),max(VAR)]);
+catch
+end
+set(p3,'UIContextMenu',c);
+%--------------------------------------------------------------------------
 
 uimenu(c,'Label','Change x limits','Callback',@setLim);
 uimenu(c,'Label','Change y limits','Callback',@setLim);
